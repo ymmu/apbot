@@ -1,4 +1,5 @@
-# first, we initialize Steem class
+import utils_
+
 import string
 from steem.blog import Blog
 from steem import Steem
@@ -23,7 +24,7 @@ class SteemWrapper:
 
     def __init__(self, dir_path, account):
         self.cwd = dir_path  # os.getcwd()
-        with open(os.path.join(self.cwd, 'config', 'key.json'), 'r') as f:
+        with open(os.path.join(self.cwd, '../config', 'key.json'), 'r') as f:
             key_ = json.load(f)
 
         self.s = Steem(nodes=['https://api.steemit.com'], keys=[key_['private_posting_key']])
@@ -60,7 +61,7 @@ class SteemWrapper:
         '''
 
         if not data_dir:
-            data_dir = os.path.join(self.cwd, 'data', 'test.txt')
+            data_dir = os.path.join(self.cwd, '../data', 'test.txt')
 
         with open(data_dir, 'r', encoding='utf8') as f:
             lines = f.readlines()
@@ -123,21 +124,18 @@ class SteemWrapper:
             self.s.commit.post(**data_)
 
             # return the url of edited post
-            post_url = 'https://steemit.com/{}/@{}/{}'.format(data['tags'].split(" ")[0], self.account,
-                                                              data['permlink'])
+            post_url = 'https://steemit.com/{}/@{}/{}'.format(data_['tags'].split(" ")[0], self.account,
+                                                              data_['permlink'])
             # print(post_url)
             print("Post was updated successfully: {}".format(post_url))
 
         except Exception as e:
             print(e)
 
-# tmp
-def get_timestamp():
-    KST = pytz.timezone('Asia/Seoul')
-    return datetime.datetime.utcnow().replace(tzinfo=KST).strftime("%Y-%m-%dT%H:%M:%S%z")
-
 
 if __name__ == '__main__':
+    # print(utils_.get_timestamp())
+
     sw = SteemWrapper('.', 'ymmu')
 
     # Test get my post
@@ -146,7 +144,7 @@ if __name__ == '__main__':
     # Test patch data
     post = posts[0]
     pprint(post)
-    patch_ = {'body': post['body'] + '\n patch test : {}'.format(get_timestamp())}
+    patch_ = {'body': post['body'] + '\n patch test : {}'.format(utils_.get_timestamp())}
     sw.update_post(patch_, post)
 
     # Test convert an article txt to json data
