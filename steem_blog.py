@@ -21,26 +21,20 @@ class SteemWrapper:
     KST = pytz.timezone('Asia/Seoul')
     call_count = 0
 
-    def __init__(self, dir_path):
+    def __init__(self, dir_path, account):
         self.cwd = dir_path  # os.getcwd()
         with open(os.path.join(self.cwd, 'config', 'key.json'), 'r') as f:
             key_ = json.load(f)
 
         self.s = Steem(nodes=['https://api.steemit.com'], keys=[key_['private_posting_key']])
-        self.account = 'ymmu'
+        self.account = account
 
     def submit_post(self, data):
-        # capture variables
-        #title = 'test_api'
-        #body = 'test <br> # markdown test <br> whatever'
-        # capture list of tags and separate by " "
-        #taglist = 'test'
 
         try:
             self.s.commit.post(**data)
             print("Post created successfully")
-            # self.s.commit.post(title=data["title"], body=data["body"], author=self.author, tags=data["taglist"])
-            # permlink=permlink
+
         except Exception as e:
             print(e)
 
@@ -76,7 +70,7 @@ class SteemWrapper:
 
         data = {**kargs}
         data["title"] = title.split('\n')[0]
-        data["body"] =body
+        data["body"] = body
         data["author"] = self.account
         data["tags"] = tags.split('\n')[0]
 
@@ -86,7 +80,7 @@ class SteemWrapper:
 
         return data
 
-        #with open(data_dir, 'w', encoding='utf8') as f:
+        # with open(data_dir, 'w', encoding='utf8') as f:
         #    json.dump({'d': body_list}, f, ensure_ascii=False)
 
     def validate_params(self, new_data):
@@ -129,31 +123,37 @@ class SteemWrapper:
             self.s.commit.post(**data_)
 
             # return the url of edited post
-            post_url = 'https://steemit.com/{}/@{}/{}'.format(data['tags'].split(" ")[0], self.account, data['permlink'])
+            post_url = 'https://steemit.com/{}/@{}/{}'.format(data['tags'].split(" ")[0], self.account,
+                                                              data['permlink'])
             # print(post_url)
             print("Post was updated successfully: {}".format(post_url))
 
         except Exception as e:
             print(e)
 
+# tmp
+def get_timestamp():
+    KST = pytz.timezone('Asia/Seoul')
+    return datetime.datetime.utcnow().replace(tzinfo=KST).strftime("%Y-%m-%dT%H:%M:%S%z")
+
 
 if __name__ == '__main__':
-    sw = SteemWrapper('.')
+    sw = SteemWrapper('.', 'ymmu')
 
     # Test get my post
     posts = sw.get_posts(nums=1)
 
     # Test patch data
     post = posts[0]
-    #pprint(post)
-    #patch_ = {'body': post['body'] + '\n patch test'}
-    #sw.update_post(patch_, post)
+    pprint(post)
+    patch_ = {'body': post['body'] + '\n patch test : {}'.format(get_timestamp())}
+    sw.update_post(patch_, post)
 
     # Test convert an article txt to json data
-    patch_ = sw.wrap_data()
-    patch_["permlink"] = post["permlink"]  # only for test
-    pprint(patch_)
-    sw.update_post(patch_, post)
+    # patch_ = sw.wrap_data()
+    # patch_["permlink"] = post["permlink"]  # only for test
+    # pprint(patch_)
+    # sw.update_post(patch_, post)
 
     # Test submit posts
     # data = sw.wrap_data()
