@@ -1,0 +1,6 @@
+config/*
+__pycache__
+.idea
+data/*
+samples
+sources/tmp_sess.json
