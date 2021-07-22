@@ -1,0 +1,49 @@
+{
+  "post": {
+    "write": {
+      "req_url": "https://www.tistory.com/apis/post/write",
+      "access_token": "",
+      "output": "json",
+      "blogName": "myohyun",
+      "title": "",
+      "content": "",
+      "visibility": "0",
+      "category": "",
+      "published": "",
+      "slogan": "",
+      "tag": "",
+      "acceptComment": "",
+      "password": ""
+    },
+    "read": {
+      "req_url": "https://www.tistory.com/apis/post/read",
+      "access_token":"",
+      "output":"json",
+      "blogName":"myohyun",
+      "postId": ""
+    },
+    "list": {
+      "req_url":"https://www.tistory.com/apis/post/list",
+      "access_token":"",
+      "output":"json",
+      "blogName":"myohyun",
+      "page":"1"
+    }
+  },
+  "outh":{
+    "token_params": {
+      "req_url": "https://www.tistory.com/oauth/access_token",
+      "client_id": "",
+      "redirect_uri": "http://myohyun.tistory.com",
+      "code": "",
+      "client_secret": "",
+      "grant_type": "authorization_code"
+    },
+    "code_params": {
+      "req_url": "https://www.tistory.com/oauth/authorize",
+      "client_id": "",
+      "redirect_uri": "http://myohyun.tistory.com",
+      "response_type": "code"
+    }
+}
+}

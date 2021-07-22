@@ -226,10 +226,13 @@ class SignProcess(steembase.transactions.SignedTransaction):
         return pubKeysFound
 
 # tmp
-def get_timestamp():
+def get_timestamp(str_=True):
     KST = pytz.timezone('Asia/Seoul')
-    return datetime.utcnow().replace(tzinfo=KST).strftime("%Y-%m-%dT%H:%M:%S%z")
-
+    now_ = datetime.utcnow().replace(tzinfo=KST)
+    if str_:
+        return now_.strftime("%Y-%m-%dT%H:%M:%S%z")
+    else:
+        return now_
 
 def img2byte(img_path=None):
     if not img_path:

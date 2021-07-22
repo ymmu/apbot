@@ -152,9 +152,13 @@ class SteemWrapper:
         except Exception as e:
             print(e)
 
+    def upload_image(self, images):
+        """send images to steemimages.com and get image links
 
-class Tmpdata:
-    data = None
+        :param images:
+        :return:
+        """
+        pass
 
 
 if __name__ == '__main__':
