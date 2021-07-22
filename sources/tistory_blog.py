@@ -36,7 +36,7 @@ class TistoryWrapper(Post):
     def submit_post(self, data):
         form = self.form['post']['read']
         req_url = form.pop('req_url')
-        form.update({"access_token": self.sess_.get_token()})
+        form.update({"access_token": self.sess_.get_token(), "blogName": self.account})
         try:
             res = requests.post(req_url, params=form)
             if res.status_code == 200:
@@ -47,7 +47,14 @@ class TistoryWrapper(Post):
             print(e)
 
     def get_posts(self, page=None, author=None):
-        if author == None:
+        """ get post list of the specific author.
+            must put author of url {author}.tistory.com
+
+        :param page:
+        :param author:
+        :return:
+        """
+        if not author:
             author = self.account
         form = self.form['post']['list']
         req_url = form.pop('req_url')
@@ -70,7 +77,7 @@ class TistoryWrapper(Post):
         else:
             form = self.form['post']['read']
             req_url = form.pop('req_url')
-            form.update({"access_token": self.sess_.get_token(), "postId": post_id})
+            form.update({"access_token": self.sess_.get_token(), "postId": post_id, "blogName":self.account})
             try:
                 res = requests.get(req_url, params=form)
                 if res.status_code == 200:
