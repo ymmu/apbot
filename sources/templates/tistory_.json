@@ -34,7 +34,7 @@
     "token_params": {
       "req_url": "https://www.tistory.com/oauth/access_token",
       "client_id": "",
-      "redirect_uri": "http://myohyun.tistory.com",
+      "redirect_uri": "http://{}.tistory.com",
       "code": "",
       "client_secret": "",
       "grant_type": "authorization_code"
@@ -42,7 +42,7 @@
     "code_params": {
       "req_url": "https://www.tistory.com/oauth/authorize",
       "client_id": "",
-      "redirect_uri": "http://myohyun.tistory.com",
+      "redirect_uri": "http://{}.tistory.com",
       "response_type": "code"
     }
 }

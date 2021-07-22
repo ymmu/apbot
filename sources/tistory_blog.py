@@ -22,7 +22,7 @@ class TistoryWrapper(Post):
         self.account = account  # {account}.tistory.com
         self.key_ = self.get_keys()
         self.form = self.get_data_form()
-        self.sess_ = Tistory_session(self.form['outh'], self.key_)
+        self.sess_ = Tistory_session(self.form['outh'], self.key_, account)
 
     def get_data_form(self):
         return super(TistoryWrapper, self).get_data_form()
@@ -97,12 +97,13 @@ class TistoryWrapper(Post):
 
 class Tistory_session:
 
-    def __init__(self, form, key_):
+    def __init__(self, form, key_, account):
         self.form = form
         self.key_ = key_
         self.access_token = None
         self.start_t = None
         self.last_sess_path = './tmp_sess.json'
+        self.form['redirect_uri'] = self.form['redirect_uri'].format(account)
 
         # check the last access token is valid
         # if not, get new one and save it to temp json
