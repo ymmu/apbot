@@ -42,33 +42,49 @@ except:  # noqa FIXME(sneak)
     #          "    pip install secp256k1")
 
 
-class SignProcess(steembase.transactions.SignedTransaction):
+class SignImage(steembase.transactions.SignedTransaction):
+    """
+    # get signedTransaction as parent class to use sign message function explicitly.
+    # (override) adjust original sign function from SignedTransaction class.
+    # New overridden sign function need a message param and doesn't need a chain param
+
+    """
 
     def __init__(self, steemd_instance, *args, **kwargs):
         # super 인자에 아무것도 안 적어주면 디폴트로 현 클래스명이 들어감
         self.steemd = steemd_instance
-        super(SignProcess, self).__init__(*args, **kwargs)
+        super(SignImage, self).__init__(*args, **kwargs)
 
-    def deriveDigest(self, message, chain=None):
-        # Do not serialize signatures
-        sigs = self.data["signatures"]
-        self.data["signatures"] = []
+    @staticmethod
+    def deriveDigest(message):  # chain=None
+        """ it was overriden and makes image hash and byte message with prefix.
 
-        # Get message to sign
-        self.message = message
-        self.digest = hashlib.sha256(message).digest()
-        # restore signatures
-        self.data["signatures"] = sigs
+        :param message:
+        :return: digest(image_hash) and byte message
+        """
+
+        # 1. convert prefix to byte type
+        prefix_ = 'ImageSigningChallenge'.encode('utf-8')
+        print(prefix_)
+
+        # 3. concat prefix and image
+        msg = prefix_ + compat_bytes(message)
+        print('msg: ', msg)
+
+        # 4. get image hash
+        digest = hashlib.sha256(msg).digest()
+        print('data hash: ', digest)
+        return digest, msg
 
         # test ----
-        chain_params = self.getChainParams(chain)
-        pprint(chain_params)
-        # Chain ID
-        self.chainid = chain_params["chain_id"]
-        message2 = unhexlify(self.chainid) + compat_bytes(self)
-        message2 = hashlib.sha256(message2).digest()
-        print(type(message2), message2)
-        print(type(self.digest), self.digest)
+        # chain_params = self.getChainParams(chain)
+        # pprint(chain_params)
+        # # Chain ID
+        # self.chainid = chain_params["chain_id"]
+        # message2 = unhexlify(self.chainid) + compat_bytes(self)
+        # message2 = hashlib.sha256(message2).digest()
+        # print(type(message2), message2)
+        # print(type(self.digest), self.digest)
 
     def sign(self, message, wifkeys):
         """ Sign the transaction with the provided private keys.
@@ -76,7 +92,7 @@ class SignProcess(steembase.transactions.SignedTransaction):
             :param str chain: identifier for the chain
         """
 
-        self.deriveDigest(message, chain=self.steemd.chain_params)
+        self.digest, message = SignImage.deriveDigest(message)
 
         # Get Unique private keys
         self.privkeys = []
@@ -89,7 +105,7 @@ class SignProcess(steembase.transactions.SignedTransaction):
         sigs = []
         for wif in self.privkeys:
             # print(wif)
-            print(self.digest)
+            # print(self.digest)
             p = compat_bytes(PrivateKey(wif))
             i = 0
             if USE_SECP256K1:
@@ -167,7 +183,7 @@ class SignProcess(steembase.transactions.SignedTransaction):
         self.data["signatures"] = Array(sigs)
         return self
 
-    def verify(self, pubkeys=[] , chain=None):
+    def verify(self, message, pubkeys=[] , chain=None):
         '''
         if not chain:
             raise ValueError("Chain needs to be provided!")
@@ -175,10 +191,10 @@ class SignProcess(steembase.transactions.SignedTransaction):
         self.deriveDigest(chain)
         '''
 
-        self.deriveDigest(self.message, chain=self.steemd.chain_params)
+        digest, message = SignImage.deriveDigest(message)
 
         signatures = self.data["signatures"].data
-        print('signatures in verify: ',signatures[0])
+        print('signatures in verify: ', signatures[0])
         pubKeysFound = []
 
         for signature in signatures:
@@ -197,19 +213,19 @@ class SignProcess(steembase.transactions.SignedTransaction):
                 sig = pub.ecdsa_recoverable_deserialize(sig, recoverParameter)
                 # Recover PublicKey
                 verifyPub = secp256k1.PublicKey(
-                    pub.ecdsa_recover(compat_bytes(self.message), sig))
+                    pub.ecdsa_recover(compat_bytes(message), sig))
                 # Convert recoverable sig to normal sig
                 normalSig = verifyPub.ecdsa_recoverable_convert(sig)
                 # Verify
-                verifyPub.ecdsa_verify(compat_bytes(self.message), normalSig)
+                verifyPub.ecdsa_verify(compat_bytes(message), normalSig)
                 phex = hexlify(
                     verifyPub.serialize(compressed=True)).decode('ascii')
                 pubKeysFound.append(phex)
             else:
-                p = self.recover_public_key(self.digest, sig, recoverParameter)
+                p = self.recover_public_key(digest, sig, recoverParameter)
                 # Will throw an exception of not valid
                 p.verify_digest(
-                    sig, self.digest, sigdecode=ecdsa.util.sigdecode_string)
+                    sig, digest, sigdecode=ecdsa.util.sigdecode_string)
                 phex = hexlify(self.compressedPubkey(p)).decode('ascii')
                 pubKeysFound.append(phex)
 

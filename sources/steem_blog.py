@@ -1,7 +1,8 @@
 import base64
+import glob
 import hashlib
 import io
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 
 from steem.utils import compat_bytes
 
@@ -28,27 +29,33 @@ import time
 import argparse
 from diff_match_patch import diff_match_patch
 
+from sources.post_abstract import Post
 
-class SteemWrapper:
+
+class SteemWrapper(Post):
     KST = pytz.timezone('Asia/Seoul')
     call_count = 0
 
-    def __init__(self, account, dir_path=None):
-        if not dir_path:
-            self.dir_path = '.'
-        else:
-            self.dir_path = dir_path  # os.getcwd()
+    def __init__(self, account):
 
-        key_ = self.get_keys()['steem']
-        self.s = Steem(nodes=['https://api.steemit.com'], keys=[key_['private_posting_key']])
+        self.blog_ = 'steem'
         self.account = account
+        self.key_ = self.get_keys()
+        self.form = self.get_data_form()
+        self.repo = self.get_repo()
+        self.s = Steem(nodes=['https://api.steemit.com'], keys=[self.key_['private_posting_key']])
 
     def get_private_posting_key(self):
-        return self.get_keys()['private_posting_key']
+        return self.key_['private_posting_key']
 
     def get_keys(self):
-        with open(os.path.join(self.dir_path, '../config', 'config.json'), 'r') as f:
-            return json.load(f)
+        return super(SteemWrapper, self).get_keys()[self.blog_]
+
+    def get_repo(self):
+        return super().get_repo()
+
+    def get_data_form(self):
+        return super().get_data_form()
 
     def submit_post(self, data):
 
@@ -73,15 +80,12 @@ class SteemWrapper:
         except Exception as e:
             print(e)
 
-    def wrap_data(self, data_dir=None, **kargs):
-        '''
+    def wrap_data(self, data_dir, type='new', **kargs):
+        ''' put raw data into json.
 
         :param data_dir: 외부 글 보관하는 위치. 나중에 구글 드라이브에서 가져올 예정.
         :return:
         '''
-
-        if not data_dir:
-            data_dir = os.path.join(self.dir_path, '../data', 'test.txt')
 
         with open(data_dir, 'r', encoding='utf8') as f:
             lines = f.readlines()
@@ -89,20 +93,28 @@ class SteemWrapper:
             tags = lines[1]
             body = ''.join(lines[2:])  # 리스트로 넘겨줌
 
-        data = {**kargs}
-        data["title"] = title.split('\n')[0]
-        data["body"] = body
-        data["author"] = self.account
-        data["tags"] = tags.split('\n')[0]
 
-        # random generator to create post permlink
-        permlink = ''.join(random.choices(string.digits, k=10))
-        data["permlink"] = permlink
+        # img_links = self.upload_images()
+        #
+        img_links = [('0.png', {'url': 'https://cdn.steemitimages.com/DQmdBgywwgbakzBXHWLZRRRSxVFsSTV8QCzT6Nzb3KQGiBg/lotte2_s.png'}),
+                     ('1.png', {'url': 'https://cdn.steemitimages.com/DQmcmRtqnreEqKJq2CgpLtx5NZL2AfRPBBMnHbeJVCdGyS8/skuld_s.png'})]
 
-        return data
+        body = SteemWrapper.attach_images(body, img_links)
 
-        # with open(data_dir, 'w', encoding='utf8') as f:
-        #    json.dump({'d': body_list}, f, ensure_ascii=False)
+        form = self.form['post']['write']
+        form.update({
+            "title": title.split('\n')[0],
+            "body": body,
+            "author": self.account,
+            "tags": tags.split('\n')[0]
+        })
+
+        if type == 'new':
+            form["permlink"] = ''.join(random.choices(string.digits, k=10))  # random generator to create post permlink
+        elif type == 'update':
+            form['body'] += ' \n\n * Last update : {}'.format(utils_.get_timestamp())
+
+        return form
 
     def validate_params(self, new_data):
         '''
@@ -152,25 +164,107 @@ class SteemWrapper:
         except Exception as e:
             print(e)
 
-    def upload_image(self, images):
+    def upload_images(self, repo=None, **kargs):
         """send images to steemimages.com and get image links
 
-        :param images:
+        :param repo: dir path where images are stored.
         :return:
         """
+
+        img_links = []  # results
+        img_list = []   # binary images
+        img_name_list = []
+
+        # get image byte data
+        if not repo:  # get a default image (maybe for thumbnail ?)
+            test_img_path = '../data/lotte2.PNG'
+            # img_name_list.append(os.path.basename(test_img_path))
+            with open(test_img_path, 'rb') as f:
+                b_img = f.read()
+                img_list.append(b_img)
+        else:
+            imgs_path = super().get_images_path(repo=repo)
+            for img in imgs_path:
+                # img_name_list.append(os.path.basename(img))
+                with open(img, 'rb') as f:
+                    b_img = f.read()
+                    img_list.append(b_img)
+        # print(img_list)
+        # print(img_name_list)
+        for img, img_path in zip(img_list, imgs_path):
+
+            # digest, msg = utils_.SignImage.deriveDigest(img)
+
+            # make TransactionBuilder instance with dummy data
+            tx = transactionbuilder.TransactionBuilder(
+                None,
+                steemd_instance=sw.s.commit.steemd,
+                wallet_instance=sw.s.commit.wallet,
+                no_broadcast=sw.s.commit.no_broadcast,
+                expiration=sw.s.commit.expiration)
+
+            # make "dummy" data and append it to tx
+            data = sw.wrap_data("./../data/test.txt")
+            test_d = operations.Comment(data)
+            tx.appendOps([test_d])
+            # pprint(tx.json())
+
+            # - original code : signedtx = transactions.SignedTransaction(**tx.json())
+            # The utils_.SignProcess class inherited steembase.transactions.SignedTransaction
+            signedtx = utils_.SignImage(steemd_instance=self.s.commit.steemd, **tx.json())
+
+            wifs = [self.get_private_posting_key()]
+            # print('wifs_len: {}, wifs: {}'.format(len(wifs),wifs))
+            signedtx.sign(img, wifs)
+            # it's original code: signedtx.sign(wifs, chain=tx.steemd.chain_params)
+            # the overridden function does't need chain param.
+            # pprint(signedtx.json())
+
+            tx["signatures"].extend(signedtx.json().get("signatures"))
+            # print('sssss: ', signedtx.verify(message=b_img)[0]) # chain=tx.steemd.chain_params))
+
+            # ref: https://johyungen.tistory.com/489
+            # content = {"image": (os.path.basename(img_path), open(img_path, 'rb'))}
+            img_name = os.path.basename(img_path)
+            content = {"image": (img_name, img)}
+            end_point = "https://steemitimages.com"
+            url = "{}/{}/{}".format(end_point, self.account, tx["signatures"][0])
+            # print("url: ", url)
+
+            try:
+                res = requests.post(url, files=content)
+                if res.status_code == 200:
+                    pprint(res.json())
+                    img_links.append((img_name, res.json()))
+                else:
+                    img_links.append((img_name, res.json()))
+            except Exception as e:
+                print(e)  # Python 3.6
+
+        return img_links
+
+    def get_post(self, post_id):
         pass
 
 
 if __name__ == '__main__':
     # print(utils_.get_timestamp())
 
-    sw = SteemWrapper('ymmu','.')
+    sw = SteemWrapper('ymmu')
     # Test get my post
-    # posts = sw.get_posts(nums=1)
+    posts = sw.get_posts(nums=8)
 
     # Test patch data
-    # post = posts[0]
+    post = posts[-1]
     # pprint(post)
+
+    # 1.
+    patch_ = sw.wrap_data("./../data/test.txt", type='update')
+    print('patch: \n')
+    pprint(patch_)
+    # sw.update_post(patch_, post)
+
+    # 2.
     # patch_ = {'body': post['body'] + '\n patch test : {}'.format(utils_.get_timestamp())}
     # sw.update_post(patch_, post)
 
@@ -181,83 +275,35 @@ if __name__ == '__main__':
     # sw.update_post(patch_, post)
 
     # Test submit posts
-    # data = sw.wrap_data()
+    # data = sw.wrap_data("./../data/test.txt", type='new')
+    # pprint(data)
     # sw.submit_post(data)
     ## print(sw.s.__dict__)
 
     # make data
-    data = sw.wrap_data()
-    data["parent_author"] = ""
-    data["parent_permlink"] = ""
-    test_d = operations.Comment(data)
+    # data = sw.wrap_data("./../data/test.txt")
+    # data["parent_author"] = ""
+    # data["parent_permlink"] = ""
+    # test_d = operations.Comment(data)
+    #
+    # # get image data
+    # test_img_path = '../data/skuld_s.PNG'
+    # name_img = os.path.basename(test_img_path)
+    # prefix_ = 'ImageSigningChallenge'.encode('utf-8')
+    # print(prefix_)
+    #
+    # with open(test_img_path, 'rb') as f:
+    #     binary_ = f.read()
+    #
+    # msg = prefix_ + compat_bytes(binary_)
+    # print(msg)
+    # digest = hashlib.sha256(msg).digest()
+    # print(digest)
 
-    # get image data
-    test_img_path = '../data/skuld_s.PNG'
-    name_img = os.path.basename(test_img_path)
-    prefix_ = 'ImageSigningChallenge'.encode('utf-8')
-    print(prefix_)
+    # test
 
-    with open(test_img_path, 'rb') as f:
-        binary_ = f.read()
+    #
+    #img_links = sw.upload_images(repo='../data')
+    #print(img_links)
 
-    msg = prefix_ + compat_bytes(binary_)
-    print(msg)
-    digest = hashlib.sha256(msg).digest()
-    print(digest)
-
-
-    #''' TransactionBuilder test
-    tx = transactionbuilder.TransactionBuilder(
-        None,
-        steemd_instance=sw.s.commit.steemd,
-        wallet_instance=sw.s.commit.wallet,
-        no_broadcast=sw.s.commit.no_broadcast,
-        expiration=sw.s.commit.expiration)
-
-    tx.appendOps([test_d])
-    #pprint(tx.json())
-    #pprint()
-    # get signedTransaction to sign message
-    # signedtx = transactions.SignedTransaction(**tx.json())
-    signedtx = utils_.SignProcess(steemd_instance=sw.s.commit.steemd, **tx.json())
-
-    #signedtx.digest = digest
-    wifs = [sw.get_private_posting_key()]
-    #print(wifs, len(wifs))
-    #signedtx.sign(wifs, chain=tx.steemd.chain_params)
-    signedtx.sign(msg, wifs)
-    # pprint(signedtx.json())
-    tx["signatures"].extend(signedtx.json().get("signatures"))
-
-    print('sssss: ', signedtx.verify(chain=tx.steemd.chain_params))
-
-
-    # post_op = operations.Comment(
-    #         **{
-    #             "parent_author": parent_author,
-    #             "parent_permlink": parent_permlink,
-    #             "author": author,
-    #             "permlink": permlink,
-    #             "title": title,
-    #             "body": body,
-    #             "json_metadata": json_metadata
-    #         })
-    #     ops = [post_op]
-
-    # ref: https://johyungen.tistory.com/489
-    # up = {'image':(filename, open(filename, 'rb'), "multipart/form-data")}
-    content = {"image": (name_img, open(test_img_path, 'rb'))}
-    end_point = "https://steemitimages.com"
-    url = "{}/{}/{}".format(end_point, sw.account, tx["signatures"][0])
-
-    print("url: ", url)
-    try:
-        res = requests.post(url, files=content)
-        print(res.status_code)
-        pprint(res.json())
-
-    except HTTPError as http_err:
-        print(f'HTTP error occurred: {http_err}')  # Python 3.6
-    except Exception as err:
-        print(f'Other error occurred: {err}')  # Python 3.6
 

@@ -3,7 +3,7 @@ It aims to help an author store articles in one place and publish them automatic
 
 ### It will support below blogs ..:
 - [ ] Steemit
-- [ ] Tstory
+- [ ] Tistory
 - [ ] Wordpress
  
 ---
