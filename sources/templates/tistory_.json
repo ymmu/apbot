@@ -12,8 +12,8 @@
       "published": "",
       "slogan": "",
       "tag": "",
-      "acceptComment": "",
-      "password": ""
+      "acceptComment": "1",
+      "password": null
     },
     "read": {
       "req_url": "https://www.tistory.com/apis/post/read",
@@ -28,7 +28,35 @@
       "output":"json",
       "blogName":"",
       "page":"1"
+    },
+    "modify": {
+      "req_url": "https://www.tistory.com/apis/post/modify?",
+      "access_token": "",
+      "output": "json",
+      "blogName": "",
+      "postId": "",
+      "title": "",
+      "content": "",
+      "visibility": "0",
+      "category": "",
+      "published": "",
+      "slogan": "",
+      "tag": "",
+      "acceptComment": "1",
+      "password": null
     }
+  },
+  "attach": {
+    "req_url": "https://www.tistory.com/apis/post/attach",
+    "access_token":"",
+    "blogName":"",
+    "output":"json"
+  },
+  "category": {
+    "req_url":"https://www.tistory.com/apis/category/list",
+    "access_token":"",
+    "output":"json",
+    "blogName":""
   },
   "outh":{
     "token_params": {

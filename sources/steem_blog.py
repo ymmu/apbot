@@ -4,9 +4,10 @@ import hashlib
 import io
 from binascii import hexlify, unhexlify
 
+import docx
 from steem.utils import compat_bytes
 
-import utils_
+from sources import utils_, post_abstract
 
 import string
 from steem.blog import Blog
@@ -48,16 +49,29 @@ class SteemWrapper(Post):
     def get_private_posting_key(self):
         return self.key_['private_posting_key']
 
+    def get_data_form(self):
+        return super().get_data_form()
+
     def get_keys(self):
-        return super(SteemWrapper, self).get_keys()[self.blog_]
+        return super(SteemWrapper, self).get_keys()
 
     def get_repo(self):
         return super().get_repo()
 
-    def get_data_form(self):
-        return super().get_data_form()
+    def get_images_path(self, repo):
+        return super().get_images_path(repo)
 
-    def submit_post(self, data):
+    @staticmethod
+    def attach_images(text: str, img_links: list) -> str:
+        """ attach image links in the text
+
+        :param text:
+        :param img_links:
+        :return:
+        """
+        return Post.attach_images(text, img_links)
+
+    def create_post(self, data):
 
         try:
             self.s.commit.post(**data)
@@ -80,39 +94,55 @@ class SteemWrapper(Post):
         except Exception as e:
             print(e)
 
-    def wrap_data(self, data_dir, type='new', **kargs):
+    def wrap_data(self, doc: object = None, local_repo: str = None, type='new', **kargs):
         ''' put raw data into json.
 
-        :param data_dir: 외부 글 보관하는 위치. 나중에 구글 드라이브에서 가져올 예정.
+        :param doc: 외부 저장소에서 가져온 데이터
+        :param local_repo: 로컬저장소글 보관하는 위치. 나중에 구글 드라이브에서 가져올 예정.
         :return:
         '''
 
-        with open(data_dir, 'r', encoding='utf8') as f:
-            lines = f.readlines()
+        form = self.form['post']['write']
+
+        if local_repo:
+            # images_, video_는 필요없음
+            lines, _, _ = super(SteemWrapper, self).wrap_data(local_repo=local_repo)
             title = lines[0]
             tags = lines[1]
             body = ''.join(lines[2:])  # 리스트로 넘겨줌
+            # img_links = self.upload_images()
+            # test images
+            img_links = [('0.png', {'url': 'https://cdn.steemitimages.com/DQmdBgywwgbakzBXHWLZRRRSxVFsSTV8QCzT6Nzb3KQGiBg/lotte2_s.png'}),
+                         ('1.png', {'url': 'https://cdn.steemitimages.com/DQmcmRtqnreEqKJq2CgpLtx5NZL2AfRPBBMnHbeJVCdGyS8/skuld_s.png'})]
+
+            body = SteemWrapper.attach_images(body, img_links)
 
 
-        # img_links = self.upload_images()
-        #
-        img_links = [('0.png', {'url': 'https://cdn.steemitimages.com/DQmdBgywwgbakzBXHWLZRRRSxVFsSTV8QCzT6Nzb3KQGiBg/lotte2_s.png'}),
-                     ('1.png', {'url': 'https://cdn.steemitimages.com/DQmcmRtqnreEqKJq2CgpLtx5NZL2AfRPBBMnHbeJVCdGyS8/skuld_s.png'})]
+            form.update({
+                "title": title.split('\n')[0],
+                "body": body,
+                "author": self.account,
+                "tags": tags.split('\n')[0]
+            })
 
-        body = SteemWrapper.attach_images(body, img_links)
+        else:  # data 처리
 
-        form = self.form['post']['write']
-        form.update({
-            "title": title.split('\n')[0],
-            "body": body,
-            "author": self.account,
-            "tags": tags.split('\n')[0]
-        })
+            body = ''.join(doc['content'])
+            body = SteemWrapper.attach_images(body, doc['images'])
+            tags = ' '.join(doc['tags'])
+
+            form.update({
+                "title": doc['title'],
+                "body": body,
+                "author": self.account,
+                "tags": tags.split('\n')[0]
+            })
+            doc
 
         if type == 'new':
             form["permlink"] = ''.join(random.choices(string.digits, k=10))  # random generator to create post permlink
         elif type == 'update':
-            form['body'] += ' \n\n * Last update : {}'.format(utils_.get_timestamp())
+            form['body'] += ' \n\n * Last update : {}'.format(utils_.now_timestamp())
 
         return form
 
@@ -173,12 +203,10 @@ class SteemWrapper(Post):
 
         img_links = []  # results
         img_list = []   # binary images
-        img_name_list = []
 
         # get image byte data
         if not repo:  # get a default image (maybe for thumbnail ?)
             test_img_path = '../data/lotte2.PNG'
-            # img_name_list.append(os.path.basename(test_img_path))
             with open(test_img_path, 'rb') as f:
                 b_img = f.read()
                 img_list.append(b_img)

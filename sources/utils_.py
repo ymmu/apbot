@@ -1,7 +1,13 @@
+import json
+import os
 from pprint import pprint
+from urllib.parse import parse_qs, urlparse
 
+import markdown
 import pytz
-from datetime import datetime
+from datetime import datetime, date
+
+import requests
 from PIL import Image
 import io
 import steembase
@@ -15,9 +21,21 @@ import sys
 from binascii import hexlify, unhexlify
 from collections import OrderedDict
 from datetime import datetime
+import os.path
+import re
+import json
+from pprint import pprint
+
+from notion.client import NotionClient
+
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from googleapiclient.http import MediaIoBaseDownload
+from apiclient import errors
 
 import ecdsa
-
 from steem.utils import compat_bytes, compat_chr
 from steembase.account import PrivateKey, PublicKey
 from steembase.chains import known_chains
@@ -35,10 +53,10 @@ try:
     import secp256k1
 
     USE_SECP256K1 = True
-    #log.debug("Loaded secp256k1 binding.")
+    # log.debug("Loaded secp256k1 binding.")
 except:  # noqa FIXME(sneak)
     USE_SECP256K1 = False
-    #log.debug("To speed up transactions signing install \n"
+    # log.debug("To speed up transactions signing install \n"
     #          "    pip install secp256k1")
 
 
@@ -132,7 +150,7 @@ class SignImage(steembase.transactions.SignedTransaction):
                     cnt += 1
                     if not cnt % 20:
                         print("Still searching for a canonical signature. "
-                                 "Tried %d times already!" % cnt)
+                              "Tried %d times already!" % cnt)
 
                     # Deterministic k
                     k = ecdsa.rfc6979.generate_k(
@@ -183,7 +201,7 @@ class SignImage(steembase.transactions.SignedTransaction):
         self.data["signatures"] = Array(sigs)
         return self
 
-    def verify(self, message, pubkeys=[] , chain=None):
+    def verify(self, message, pubkeys=[], chain=None):
         '''
         if not chain:
             raise ValueError("Chain needs to be provided!")
@@ -237,18 +255,20 @@ class SignImage(steembase.transactions.SignedTransaction):
             if k not in pubKeysFound and repr(pubkey) not in pubKeysFound:
                 k = PublicKey(PublicKey(k).compressed())
                 # f = format(k, chain_params["prefix"])
-                #f = format(k, )
-                #raise Exception("Signature for %s missing!" % f)
+                # f = format(k, )
+                # raise Exception("Signature for %s missing!" % f)
         return pubKeysFound
 
+
 # tmp
-def get_timestamp(str_=True):
+def now_timestamp(str_=True):
     KST = pytz.timezone('Asia/Seoul')
     now_ = datetime.utcnow().replace(tzinfo=KST)
     if str_:
         return now_.strftime("%Y-%m-%dT%H:%M:%S%z")
     else:
         return now_
+
 
 def img2byte(img_path=None):
     if not img_path:
@@ -257,3 +277,455 @@ def img2byte(img_path=None):
     bytearr = io.BytesIO()
     img.save(bytearr, format="png")
     return bytearr.getvalue()
+
+
+class Session:
+
+    def __init__(self, form, key_, account, blog_):
+        self.cwd_ = os.path.dirname(os.path.abspath(__file__))
+        self.form = form
+        self.key_ = key_
+        self.blog_ = blog_
+        self.access_token = None
+        self.start_t = None
+        self.last_sess_path = os.path.join(self.cwd_, './tmp_sess.json')
+        self.last_sess_info = None
+        self.t = 60
+        for k in self.form.keys():
+            self.form[k]['redirect_uri'] = self.form[k]['redirect_uri'].format(account)
+
+        # check the last access token is valid
+        # if not, get new one and save it to temp json
+        if os.path.isfile(self.last_sess_path):
+            with open(self.last_sess_path, 'r') as f:
+                self.last_sess_info = json.load(f)
+            if self.blog_ in self.last_sess_info.keys():
+                last_sess_info = self.last_sess_info[self.blog_]
+                sess_last_start = datetime.strptime(last_sess_info["start_t"], "%Y-%m-%dT%H:%M:%S%z")
+                print('last session was started at ', sess_last_start)
+                if self.is_expired(sess_last_start):
+                    self.authorize()
+                else:
+                    print('got last session token.')
+                    self.access_token = last_sess_info["access_token"]
+                    self.start_t = last_sess_info["start_t"]
+            else:
+                self.authorize()
+        else:
+            self.authorize()
+
+    def get_token(self):
+        return self.access_token
+
+    def is_expired(self, sess_last_start=None):
+        if not sess_last_start:
+            sess_last_start = self.start_t
+        t_diff = now_timestamp(str_=False) - sess_last_start
+        print(t_diff.total_seconds())
+        if t_diff.total_seconds() / 60 >= self.t:  # 분 기준임
+            return True
+        else:
+            return False
+
+    def authorize(self):
+        """ get access_token
+
+        :return:
+        """
+        forms = self.form["code_params"]
+        code_url = forms.pop('req_url')
+        forms.update({
+            "client_id": self.key_['app_id']
+        })
+
+        # print(code_url, forms)
+
+        try:
+            res = requests.get(url=code_url, params=forms)
+            if res.status_code == 200:
+                auth_page = res.url
+                print(auth_page)
+            else:
+                # print(res.text)
+                raise Exception(res)
+
+            # get code using selenium
+            # 안 된다..불가능한 듯
+            # chrome = webdriver.Chrome('../chromedriver.exe')
+            # print(auth_page)
+            # chrome.get(auth_page)
+            # chrome.implicitly_wait(2)
+            #
+            # chrome.implicitly_wait(1)
+            # chrome.find_element_by_xpath('// *[ @ id = "contents"] / div[4] / button[1]').click()
+            # chrome.implicitly_wait(2)
+            # print(chrome.current_url)
+            res_url = input()
+            code = parse_qs(urlparse(res_url).query)['code']
+            forms = self.form["token_params"]
+            token_url = forms.pop('req_url')
+            forms.update({
+                "client_id": self.key_['app_id'],
+                "code": code,
+                "client_secret": self.key_['secret_key']
+            })
+
+            # print(res_url)
+
+            res = requests.get(url=token_url, params=forms)
+            if res.status_code == 200:
+                print(res.text)
+                self.access_token = res.text.split('=')[1]  # res.json()['access_token']
+                self.start_t = now_timestamp()
+
+                if not self.last_sess_info:
+                    print('res')
+                    self.last_sess_info = {}
+
+                with open(self.last_sess_path, 'w') as f:
+                    self.last_sess_info.update({
+                        self.blog_: {
+                            "access_token": self.access_token,
+                            "start_t": self.start_t
+                        }})
+                    json.dump(self.last_sess_info, fp=f)
+                print('got access_token at {}'.format(self.start_t))
+            else:
+                # print(res.text)
+                raise Exception(res.text)
+        except Exception as e:
+            print('authrization error: ', e)
+
+
+# If modifying these scopes, delete the file token.json.
+SCOPES = ['https://www.googleapis.com/auth/photoslibrary',
+          'https://www.googleapis.com/auth/documents',
+          'https://www.googleapis.com/auth/drive']
+
+article_info = {
+    "blog": None,
+    "category": None,
+    "timestamp": None,
+    "title": None,
+    "tags": [],
+    "images": [],
+    "content": []
+}
+
+
+def get_docs_from_gdrive() -> object:
+    """Shows basic usage of the Docs API.
+    Prints the title of a sample document.
+    """
+    creds = None
+    cwd_ = os.path.dirname(os.path.abspath(__file__))
+    # The file token.json stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    if os.path.exists(cwd_ + '/../config/token.json'):
+        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                cwd_ + '/../config/credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open(cwd_ + '/../config/token.json', 'w') as token:
+            token.write(creds.to_json())
+
+    # google photo api ---
+    # 'https://photoslibrary.googleapis.com/v1/albums'
+    # service = build('photoslibrary', 'v1', credentials=creds, static_discovery=False)
+    # results = service.albums().list().execute() #앨범리스트
+    # results = service.mediaItems().list().execute()
+
+    service = build('drive', 'v3', credentials=creds)
+
+    # Call the Drive v3 API
+    # results = service.files().list(
+    #     pageSize=10, fields="nextPageToken, files(id, name)").execute()
+    # items = results.get('files', [])
+    # if not items:
+    #     print('No files found.')
+    # else:
+    #     print('Files:')
+    #     for item in items:
+    #         print(u'test : {0} ({1})'.format(item['name'], item['id']))
+
+    # drive 에서 업데이트된 파일들 retrieve
+    response = service.changes().getStartPageToken().execute()
+    page_token = response.get('startPageToken')
+    # print(page_token)
+    while page_token is not None:
+        response = service.changes().list(pageToken=page_token,
+                                          spaces='drive').execute()
+        for change in response.get('changes'):
+            # Process change
+            print('Change found for file: %s' % change.get('fileId'))
+        if 'newStartPageToken' in response:
+            # Last page, save this token for the next polling interval
+            saved_start_page_token = response.get('newStartPageToken')
+        page_token = response.get('nextPageToken')
+
+    # dir_id = '19GkUURxCJWQV-LNZpoCszz4Bgvq_Pdv9'  # 드라이브 내 auto_publish 폴더 id
+    publish_id = '1J7SueMXQuEUBPikUJF9hJNPn3yH8kgXq'  # publish 폴더
+
+    response = service.files().list(q="'{}' in parents".format(publish_id),  # "mimeType='image/jpeg'",
+                                    spaces='drive',
+                                    fields='nextPageToken, files(id, name)',
+                                    pageToken=page_token).execute()
+    items = response.get('files', [])
+    for item in items:
+        print(u'in publish : {0} ({1})'.format(item['name'], item['id']))
+
+    article_list = []  # json양식으로 정리된 발행글들 모음
+    for item in items:  # 발행할 글 폴더들
+        response = service.files().list(q="'{}' in parents".format(item['id']),  # "mimeType='image/jpeg'",
+                                        spaces='drive',
+                                        fields='nextPageToken, files(id, name)',
+                                        pageToken=page_token).execute()
+
+        # response_img = service.files().list(q="'{}' in parents mimeType='image/jpeg'",
+        #                                 spaces='drive',
+        #                                 fields='nextPageToken, files(id, name)',
+        #                                 pageToken=page_token).execute()
+
+        spliter = re.compile("\|")
+        # "[가-힣|a-z|A-Z]+\|[가-힣|a-z|A-Z]+\|[0-9]{2,4}-*[0-9]{1,2}-*[0-9]{1,2}(T[0-9]{2}:[0-9]{2}:[0-9]{2})*\|.*")
+        for file in response.get('files', []):  # 하나의 글 폴더 안에서
+            file_list = []
+            image_list = []
+            print('Found a file in the folder: %s (%s)' % (file.get('name'), file.get('id')))
+            f_name = file.get('name')
+
+            items = spliter.split(f_name)
+            print(items)
+
+            if len(items) == 4:  # 글 파일은 하나여야 함
+                # timestamp 처리 ----
+                timestamp_ = convert_to_timestamp(items[2])
+
+                article_info.update({
+                    "blog": items[0],
+                    "category": items[1],
+                    "timestamp": timestamp_,
+                    "title": items[3]
+                })
+
+                file_list.append(file.get('id'))
+
+            else:  # 이미지 파일 (이어야 함)
+                # print('ddd :', rst.group())
+                # print('Check file name format : ', file.get('name'))
+                request = service.files().get_media(fileId=file.get('id'))
+
+                if f_name.lower().endswith(('.jpg', '.gif', '.bmp', '.png')):
+                    fh = io.BytesIO()
+                    downloader = MediaIoBaseDownload(fh, request)
+                    done = False
+                    while done is False:
+                        status, done = downloader.next_chunk()
+                        print("Download %d%%." % int(status.progress() * 100))
+                        # from PIL import Image
+                        # Image.open(fh)
+                        # print(type(fh.getvalue()), type(f_name))
+                        # print(bytes(list(fh.getvalue())) == fh.getvalue())
+                        image_list.append([f_name, fh.getvalue()])
+                elif f_name.lower().endswith(('.mov', '.mp4', '.mp3')):
+                    pass
+
+
+            # google docs 작업----
+            # doc 가져와서 내용,이미지 읽음
+            service_doc = build('docs', 'v1', credentials=creds, static_discovery=False)
+
+            doc_list = []
+            for doc_id in file_list:  # for문 해놨지만 글 파일은 1개여야 함
+                doc = service_doc.documents().get(documentId=doc_id).execute()
+
+                if 'inlineObjects' in doc.keys():
+                    for v in doc['inlineObjects'].values():
+                        img_url = v['inlineObjectProperties']['embeddedObject']['imageProperties']['contentUri']
+                        image_list.append(download_img(img_url))  # bytes 저장임
+
+                # doc_list.append(doc)
+                doc_lines = doc['body']['content']
+                lines_ = []
+                img_num = 0
+                for idx, line in enumerate(doc_lines):
+                        if 'paragraph' in line.keys():
+                            if idx == 1: # 맨 첫줄 태그 떼어내기
+                                tags = \
+                                    [l['textRun']['content'] for l in line['paragraph']['elements'] if
+                                     'textRun' in l.keys()][0]
+                                tags = tags.replace("\n","").split(',')
+
+                            else:
+                                for l in line['paragraph']['elements']:
+                                    if 'textRun' in l.keys():  # 텍스트
+                                        lines_.append(l['textRun']['content'])
+                                    elif 'inlineObjectElement' in l.keys(): # 이미지
+                                        lines_.append("<br>(img:{})<br>".format(img_num))
+                                        img_num += 1
+                                        # lines_.extend(l['inlineObjectElement']['inlineObjectId'])
+
+                article_info.update({"content": lines_,
+                                     "images": image_list,
+                                     "tags": tags})
+
+        article_list.append(article_info)
+
+    return article_list
+
+
+def get_docs_from_notion():
+    cwd_ = os.path.dirname(os.path.abspath(__file__))
+    with open(cwd_ + '/../config/config.json', 'r') as f:
+        token_v2 = json.load(f)['keys']['notion']['token_v2']
+    client = NotionClient(token_v2=token_v2)
+
+    # 글쓰기 페이지임
+    page = client.get_block("https://www.notion.so/ymmu/ad61d409d6fd47adad133fdd81ba67a8")
+    print("The title is:", page.title)
+    page.children # 이거 안 해주면 밑에 block을 못 가져옴.
+    # for child in page.children:
+    #     print(type(child), child.__dict__)
+    #     print(child.id)
+
+    # 글쓰기 페이지에서 글 table
+    cv = client.get_block(
+        "https://www.notion.so/ymmu/49b8df47b05b4ce4aa7aca477e1640ca?v=f20d702158194ba5b21b24e3e231b88f")
+
+    article_list = []  # 발행할 글들(=publish 처리 된 글들) json 형태로 만들어서 저장
+    for row in cv.collection.get_rows(search="publish"):
+        # print(row.get_all_properties())
+        # print(row.__dir__())
+        # print(row._str_fields)
+        # print(row.timestamp.start, row.timestamp.end, row.timestamp.timezone)
+        # print(type(row.timestamp.start), row.timestamp.end, type(row.timestamp.timezone))
+        print(row)
+        timestamp_ = convert_to_timestamp(row.timestamp.start)
+        article_info = {
+            "title": row.title,
+            "blog": row.blog,
+            "category": row.category,
+            "timestamp": timestamp_,
+            "tags": row.tags,
+            "images": [],
+            "content": []
+        }
+
+        for child in row.children:
+            print(child.title, type(child), child.type, child.__dir__())
+            if child.type == 'image':
+                # article_info['images'].append(child.caption)
+                article_info['images'].append(download_img(child.source)) # bytes 저장임
+                article_info["content"].append("\n(img:{})\n".format(len(article_info['images']) - 1))
+
+            elif child.type == 'header':
+                article_info["content"].append('# {}   '.format(child.title))
+
+            elif child.type == 'sub_header':
+                article_info["content"].append('## {}   '.format(child.title))
+
+            elif child.type == 'sub_sub_header':
+                article_info["content"].append('### {}   '.format(child.title))
+
+            elif child.type == 'text':
+                # print(type(child), child.type, child.__dir__())
+                article_info["content"].append('{}   \n'.format(child.title))
+
+            elif child.type == 'code':
+                article_info["content"].append(markdown.markdown("""```{}```""".format(child.title)))
+
+            elif child.type == 'bulleted_list':
+                def attach_list(parent, article_info):
+                    article_info["content"].append(markdown.markdown(' * {}'.format(parent.title)))
+                    article_info["content"].append('\n')
+                    # print('  - 리스트 하위 :')
+                    for c in parent.children:
+                        # print(c.title, type(c), c.type, c.__dir__())
+                        # attach_list(c, article_info, sub_num)
+                        article_info["content"].append(markdown.markdown(' * {}'.format(c.title)))
+                        article_info["content"].append('\n')
+                    return article_list
+
+                article_list = attach_list(child, article_info)
+                # print(child.title)
+                # article_info["content"].append(markdown.markdown(' * {}'.format(child.title)))
+                # article_info["content"].append('\n')
+                # print('  - 리스트 하위 :')
+                # for c in child.children:
+                #     print(c.title, type(c), c.type, c.__dir__())
+                #     article_info["content"].append(markdown.markdown(' * {}'.format(c.title)))
+                #     article_info["content"].append('\n')
+
+            elif child.type == 'video':
+                # print(type(child), child.type, child.__dir__())
+                # print(child.source)
+                print(child.display_source)
+                iframe = '<iframe width="560" height="315" src="{}" title="YouTube video player" frameborder="0" ' \
+                         'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; ' \
+                         'picture-in-picture" allowfullscreen></iframe> '
+                article_info["content"].append(iframe.format(child.display_source.split('?')[0]))
+                article_info["content"].append('\n')
+
+            else:
+                print(child.title, type(child), child.type, child.__dir__())
+
+        article_list.append(article_info)
+
+    return article_list
+
+
+def convert_to_timestamp(time_):
+    """ string 형태 시간을 timestamp로 변환.
+
+    :param time_:
+    :return:
+    """
+    print(type(time_))
+    timestamp_ = None
+
+    if isinstance(time_, datetime):
+        timestamp_ = time_
+    elif  isinstance(time_, date):  # 시간이 안 들어가있으면 date로 저장이 되네..;
+        timestamp_ = datetime.combine(time_, datetime.min.time())
+    else:
+        # google docs
+        re_base = u"[0-9]{2,4}(-|/)*[0-9]{1,2}(-|/)*[0-9]{1,2}"
+
+        if re.match(re_base+u"T[0-9]{2}:[0-9]{2}", time_):
+            timestamp_ = datetime.strptime(time_, "%y-%m-%dT%H:%M")
+
+        # notion
+        elif re.match(re_base+u" *[0-9]{1,2}:*[0-9]{1,2}:*[0-9]{1,2}", time_):  # notion-py에서 시간 전달 형식
+            timestamp_ = datetime.strptime(time_, "%y/%m/%d %m:%M %p")
+
+        elif re.match(re_base+u" *[0-9]{1,2}:*[0-9]{1,2} (AM|PM)", time_):  # notion 에서 시간형식
+            timestamp_ = datetime.strptime(time_, "%y/%m/%d %m:%M %p")
+
+        elif re.match(re_base, time_):
+            timestamp_ = datetime.strptime(time_, "%y-%m-%d")
+            # print(datetime.strptime(items[2], "%y-%m-%d").timetuple())
+            # time.struct_time(tm_year=2021,
+            # tm_mon=8, tm_mday=11, tm_hour=0, tm_min=0, tm_sec=0, tm_wday=2, tm_yday=223, tm_isdst=-1)
+
+    if (timestamp_ - datetime.now()).total_seconds() > 0: # 예약시간이 현재보다 과거일 때
+        timestamp_ = time.mktime(timestamp_.timetuple())
+    else:
+        timestamp_ = None
+
+    return timestamp_
+
+
+def download_img(img_url: str) -> bytes :
+    try:
+        return requests.get(img_url).content
+        # print(type(img_data)) # bytes
+    except Exception as e:
+        print('image url download error: {}', img_url)
+        return None
