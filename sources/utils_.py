@@ -413,17 +413,18 @@ article_info = {
 }
 
 
-def get_docs_from_gdrive() -> object:
-    """Shows basic usage of the Docs API.
-    Prints the title of a sample document.
+def get_google_api_token():
+    """
     """
     creds = None
     cwd_ = os.path.dirname(os.path.abspath(__file__))
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if os.path.exists(cwd_ + '/../config/token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    token_path = cwd_ + '/../config/token.json'
+    credential_path = cwd_ + '/../config/credentials.json'
+    if os.path.exists(token_path):
+        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
@@ -433,8 +434,36 @@ def get_docs_from_gdrive() -> object:
                 cwd_ + '/../config/credentials.json', SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open(cwd_ + '/../config/token.json', 'w') as token:
+        with open(token_path, 'w') as token:
             token.write(creds.to_json())
+
+    return creds
+
+
+def update_docs_gdocs():
+    # token 작업
+    creds = get_google_api_token()
+    service = build('drive', 'v3', credentials=creds)
+
+    file_id = '1sTWaJ_j7PkjzaBWtNc3IzovK5hQf21FbOw9yLeeLPNQ'
+    folder_id = '0BwwA4oUTeiV1TGRPeTVjaWRDY1E'
+    # Retrieve the existing parents to remove
+    file = service.files().get(fileId=file_id,
+                                     fields='parents').execute()
+    previous_parents = ",".join(file.get('parents'))
+    # Move the file to the new folder
+    file = service.files().update(fileId=file_id,
+                                        addParents=folder_id,
+                                        removeParents=previous_parents,
+                                        fields='id, parents').execute()
+
+
+def get_docs_from_gdrive() -> object:
+    """
+    """
+
+    # token 작업
+    creds = get_google_api_token()
 
     # google photo api ---
     # 'https://photoslibrary.googleapis.com/v1/albums'
@@ -537,7 +566,6 @@ def get_docs_from_gdrive() -> object:
                 elif f_name.lower().endswith(('.mov', '.mp4', '.mp3')):
                     pass
 
-
             # google docs 작업----
             # doc 가져와서 내용,이미지 읽음
             service_doc = build('docs', 'v1', credentials=creds, static_discovery=False)
@@ -556,32 +584,33 @@ def get_docs_from_gdrive() -> object:
                 lines_ = []
                 img_num = 0
                 for idx, line in enumerate(doc_lines):
-                        if 'paragraph' in line.keys():
-                            if idx == 1: # 맨 첫줄 태그 떼어내기
-                                tags = \
-                                    [l['textRun']['content'] for l in line['paragraph']['elements'] if
-                                     'textRun' in l.keys()][0]
-                                tags = tags.replace("\n","").split(',')
+                    if 'paragraph' in line.keys():
+                        if idx == 1:  # 맨 첫줄 태그 떼어내기
+                            tags = \
+                                [l['textRun']['content'] for l in line['paragraph']['elements'] if
+                                 'textRun' in l.keys()][0]
+                            tags = [tag.lower() for tag in tags.replace("\n", "").split(',')]
 
-                            else:
-                                for l in line['paragraph']['elements']:
-                                    if 'textRun' in l.keys():  # 텍스트
-                                        lines_.append(l['textRun']['content'])
-                                    elif 'inlineObjectElement' in l.keys(): # 이미지
-                                        lines_.append("<br>(img:{})<br>".format(img_num))
-                                        img_num += 1
-                                        # lines_.extend(l['inlineObjectElement']['inlineObjectId'])
+
+                        else:
+                            for l in line['paragraph']['elements']:
+                                if 'textRun' in l.keys():  # 텍스트
+                                    lines_.append(l['textRun']['content'])
+                                elif 'inlineObjectElement' in l.keys():  # 이미지
+                                    lines_.append("<br>(img:{})<br>".format(img_num))
+                                    img_num += 1
+                                    # lines_.extend(l['inlineObjectElement']['inlineObjectId'])
 
                 article_info.update({"content": lines_,
                                      "images": image_list,
                                      "tags": tags})
 
-        article_list.append(article_info)
+        article_list.append(('g_docs',article_info))
 
     return article_list
 
 
-def get_docs_from_notion():
+def get_notion_article_table():
     cwd_ = os.path.dirname(os.path.abspath(__file__))
     with open(cwd_ + '/../config/config.json', 'r') as f:
         token_v2 = json.load(f)['keys']['notion']['token_v2']
@@ -590,7 +619,7 @@ def get_docs_from_notion():
     # 글쓰기 페이지임
     page = client.get_block("https://www.notion.so/ymmu/ad61d409d6fd47adad133fdd81ba67a8")
     print("The title is:", page.title)
-    page.children # 이거 안 해주면 밑에 block을 못 가져옴.
+    page.children  # 이거 안 해주면 밑에 block을 못 가져옴.
     # for child in page.children:
     #     print(type(child), child.__dict__)
     #     print(child.id)
@@ -598,6 +627,32 @@ def get_docs_from_notion():
     # 글쓰기 페이지에서 글 table
     cv = client.get_block(
         "https://www.notion.so/ymmu/49b8df47b05b4ce4aa7aca477e1640ca?v=f20d702158194ba5b21b24e3e231b88f")
+
+    return cv
+
+
+def update_doc_notion(rst: object) -> object:
+    """ 글이 발행되면 publish -> done 변경 , url 넣기
+
+    :param rst:
+    :return:
+    """
+    # 글쓰기 페이지 > 소재 테이블 가져옴
+    cv = get_notion_article_table()
+    blog_ = list(rst.keys())[0]
+    for row in cv.collection.get_rows(search="publish"):
+        if row.blog == blog_ and row.title == rst[blog_]["title"]:
+            if rst[blog_]["status"] == "200":
+                row.status = "done"
+                row.url = rst[blog_]['post_url']
+            else:
+                row.error_msg = rst[blog_]["msg"]
+                row.status = rst[blog_]["status"] + " error"
+
+
+def get_docs_from_notion():
+    # 글쓰기 페이지 > 소재 테이블 가져옴
+    cv = get_notion_article_table()
 
     article_list = []  # 발행할 글들(=publish 처리 된 글들) json 형태로 만들어서 저장
     for row in cv.collection.get_rows(search="publish"):
@@ -613,16 +668,17 @@ def get_docs_from_notion():
             "blog": row.blog,
             "category": row.category,
             "timestamp": timestamp_,
-            "tags": row.tags,
+            "tags": [tag.lower() for tag in row.tags],
             "images": [],
+            "videos": [],
             "content": []
         }
 
         for child in row.children:
-            print(child.title, type(child), child.type, child.__dir__())
+            # print(child.title, type(child), child.type, child.__dir__())
             if child.type == 'image':
                 # article_info['images'].append(child.caption)
-                article_info['images'].append(download_img(child.source)) # bytes 저장임
+                article_info['images'].append(download_img(child.source))  # bytes 저장임
                 article_info["content"].append("\n(img:{})\n".format(len(article_info['images']) - 1))
 
             elif child.type == 'header':
@@ -667,16 +723,14 @@ def get_docs_from_notion():
                 # print(type(child), child.type, child.__dir__())
                 # print(child.source)
                 print(child.display_source)
-                iframe = '<iframe width="560" height="315" src="{}" title="YouTube video player" frameborder="0" ' \
-                         'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; ' \
-                         'picture-in-picture" allowfullscreen></iframe> '
-                article_info["content"].append(iframe.format(child.display_source.split('?')[0]))
-                article_info["content"].append('\n')
+                article_info['videos'].append((child.source, child.display_source))  # (유튜브링크, 임베디드링크)
+                article_info["content"].append("\n(video:{})\n".format(len(article_info['videos']) - 1))
+
 
             else:
                 print(child.title, type(child), child.type, child.__dir__())
 
-        article_list.append(article_info)
+        article_list.append(('notion', article_info))
 
     return article_list
 
@@ -692,20 +746,20 @@ def convert_to_timestamp(time_):
 
     if isinstance(time_, datetime):
         timestamp_ = time_
-    elif  isinstance(time_, date):  # 시간이 안 들어가있으면 date로 저장이 되네..;
+    elif isinstance(time_, date):  # 시간이 안 들어가있으면 date로 저장이 되네..;
         timestamp_ = datetime.combine(time_, datetime.min.time())
     else:
         # google docs
         re_base = u"[0-9]{2,4}(-|/)*[0-9]{1,2}(-|/)*[0-9]{1,2}"
 
-        if re.match(re_base+u"T[0-9]{2}:[0-9]{2}", time_):
+        if re.match(re_base + u"T[0-9]{2}:[0-9]{2}", time_):
             timestamp_ = datetime.strptime(time_, "%y-%m-%dT%H:%M")
 
         # notion
-        elif re.match(re_base+u" *[0-9]{1,2}:*[0-9]{1,2}:*[0-9]{1,2}", time_):  # notion-py에서 시간 전달 형식
+        elif re.match(re_base + u" *[0-9]{1,2}:*[0-9]{1,2}:*[0-9]{1,2}", time_):  # notion-py에서 시간 전달 형식
             timestamp_ = datetime.strptime(time_, "%y/%m/%d %m:%M %p")
 
-        elif re.match(re_base+u" *[0-9]{1,2}:*[0-9]{1,2} (AM|PM)", time_):  # notion 에서 시간형식
+        elif re.match(re_base + u" *[0-9]{1,2}:*[0-9]{1,2} (AM|PM)", time_):  # notion 에서 시간형식
             timestamp_ = datetime.strptime(time_, "%y/%m/%d %m:%M %p")
 
         elif re.match(re_base, time_):
@@ -714,7 +768,7 @@ def convert_to_timestamp(time_):
             # time.struct_time(tm_year=2021,
             # tm_mon=8, tm_mday=11, tm_hour=0, tm_min=0, tm_sec=0, tm_wday=2, tm_yday=223, tm_isdst=-1)
 
-    if (timestamp_ - datetime.now()).total_seconds() > 0: # 예약시간이 현재보다 과거일 때
+    if (timestamp_ - datetime.now()).total_seconds() > 0:  # 예약시간이 현재보다 과거일 때
         timestamp_ = time.mktime(timestamp_.timetuple())
     else:
         timestamp_ = None
@@ -722,7 +776,7 @@ def convert_to_timestamp(time_):
     return timestamp_
 
 
-def download_img(img_url: str) -> bytes :
+def download_img(img_url: str) -> bytes:
     try:
         return requests.get(img_url).content
         # print(type(img_data)) # bytes

@@ -459,74 +459,14 @@ class NaverWrapper(Post):
         self.driver.close()
 
 
-class Naver_session(utils_.Session):
-    """imgur쓰면서 만든건데, 안 써도 될지도.
-
-    """
-
-    def __init__(self, form, key_, account, blog_):
-        imgur_ = key_['imgur']
-        self.client = ImgurClient(imgur_['client_id'], imgur_['client_secret'])
-        super(Naver_session, self).__init__(form, key_, account, blog_)
-
-    def authorize(self):
-        """ get access_token
-
-        :return:
-        """
-        # Authorization flow, pin example (see docs for other auth types)
-        authorization_url = self.client.get_auth_url('token')
-        print(authorization_url)
-
-        # print(code_url, forms)
-
-        try:
-            res_url = input()
-            print(urlparse(res_url))
-            print(urlparse(res_url).query)
-            params = parse_qs(urlparse(res_url).fragment)
-            print(params)
-            self.access_token = params['access_token'][0]
-            self.refresh_token = params['refresh_token'][0]
-            self.expires_in = params['expires_in']
-
-            self.client.set_user_auth(self.access_token, self.refresh_token)
-            '''
-            callback url:
-            https://imgur.com/#
-            access_token=da9a3153dcbfd0b83f3e502772307c67429d8c5e&
-            expires_in=315360000&
-            token_type=bearer
-            &refresh_token=0494dc225885936bc5c520ab60a53fa63d0ef507&
-            account_username=ymmu&
-            account_id=152741540
-            '''
-
-            self.start_t = utils_.now_timestamp()
-            self.t = int(params['expires_in'][0]) // 60  # 뭐여? 값이 왜이래.
-            print(self.t)
-            # print((self.expires_in - self.start_t).total_seconds())
-            with open(self.last_sess_path, 'w') as f:
-                json.dump({
-                    self.blog_: {
-                        "access_token": self.access_token,
-                        "refresh_token": self.refresh_token,
-                        "start_t": self.start_t
-                    }}, fp=f)
-            print('got access_token at {}'.format(self.start_t))
-
-        except Exception as e:
-            print('authrization error: ', e)
-
-
 def temp():
     # 드라이버 로딩
     driver = webdriver.Chrome('../chromedriver.exe')
     # 사용할 변수 선언
     # 네이버 로그인 주소
     url = 'https://nid.naver.com/nidlogin.login?mode=form&url=https%3A%2F%2Fwww.naver.com'
-    uid = 'myohyun'
-    upw = 'gksRnr!ghfkd@l!'
+    uid = ''
+    upw = ''
     # 네이버 로그인 페이지로 이동
     driver.get(url)
     time.sleep(2)  # 로딩 대기

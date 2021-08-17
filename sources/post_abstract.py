@@ -45,6 +45,7 @@ class Post(metaclass=ABCMeta):
         """
         # image name = image order for arrangement.
         wrap_ = '<br><center>![{}](https://steemitimages.com/600x0/{})</center><br>'
+        # print(type(img_links[0]))
         for img_info in img_links:
             num = img_info[0].split('.')[0]
             if 'url' in img_info[1].keys():

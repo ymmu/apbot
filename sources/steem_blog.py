@@ -2,7 +2,9 @@ import base64
 import glob
 import hashlib
 import io
+import traceback
 from binascii import hexlify, unhexlify
+from copy import copy
 
 import docx
 from steem.utils import compat_bytes
@@ -71,14 +73,21 @@ class SteemWrapper(Post):
         """
         return Post.attach_images(text, img_links)
 
-    def create_post(self, data):
+    def attach_youtube(self, content: str, video_links: list) -> str:
+        for idx, video in enumerate(video_links):
+            source = video[0]  # 0: 일반 링크, 1: iframe용 임베디드 링크
+            content.replace("(video:{})".format(idx), source)
+        return content
 
+    def create_post(self, data):
         try:
-            self.s.commit.post(**data)
+            data = self.wrap_data(data)
+            pprint(self.s.commit.post(**data))
             print("Post created successfully")
 
         except Exception as e:
-            print(e)
+            print('error create_post in steem_blog. ')
+            traceback.print_exc()
 
     def get_posts(self, nums=3):
 
@@ -102,9 +111,13 @@ class SteemWrapper(Post):
         :return:
         '''
 
-        form = self.form['post']['write']
+        form = copy(self.form['post']['write'])
+        img_links = [('0.png', {
+            'url': 'https://cdn.steemitimages.com/DQmdBgywwgbakzBXHWLZRRRSxVFsSTV8QCzT6Nzb3KQGiBg/lotte2_s.png'}),
+                     ('1.png', {
+                         'url': 'https://cdn.steemitimages.com/DQmcmRtqnreEqKJq2CgpLtx5NZL2AfRPBBMnHbeJVCdGyS8/skuld_s.png'})]
 
-        if local_repo:
+        if local_repo: # 로컬레포용. 외부 레포 가져오기 전에 구현한 건데..쓰려나
             # images_, video_는 필요없음
             lines, _, _ = super(SteemWrapper, self).wrap_data(local_repo=local_repo)
             title = lines[0]
@@ -112,8 +125,6 @@ class SteemWrapper(Post):
             body = ''.join(lines[2:])  # 리스트로 넘겨줌
             # img_links = self.upload_images()
             # test images
-            img_links = [('0.png', {'url': 'https://cdn.steemitimages.com/DQmdBgywwgbakzBXHWLZRRRSxVFsSTV8QCzT6Nzb3KQGiBg/lotte2_s.png'}),
-                         ('1.png', {'url': 'https://cdn.steemitimages.com/DQmcmRtqnreEqKJq2CgpLtx5NZL2AfRPBBMnHbeJVCdGyS8/skuld_s.png'})]
 
             body = SteemWrapper.attach_images(body, img_links)
 
@@ -125,19 +136,31 @@ class SteemWrapper(Post):
                 "tags": tags.split('\n')[0]
             })
 
-        else:  # data 처리
+        else:  # 외부 data 처리
 
             body = ''.join(doc['content'])
-            body = SteemWrapper.attach_images(body, doc['images'])
+
+
+            # 이미지 링크 얻어오기
+            # img_links = self.upload_images(doc['images']) # 실전
+            img_links = [('0', {'url': 'https://cdn.steemitimages.com/DQmPCQ862ikNrtTmD3QEjJoGoGybuDjVB4obyMApNUGNyoL/0'})]
+            print(img_links)
+            # 본문에 이미지 삽입
+            body = SteemWrapper.attach_images(body, img_links)
+
+            # 유튜브 링크 붙이기
+            body = self.attach_youtube(body, doc["videos"])
+
+            # 태그 붙이기
             tags = ' '.join(doc['tags'])
 
+            print(body)
             form.update({
                 "title": doc['title'],
                 "body": body,
                 "author": self.account,
-                "tags": tags.split('\n')[0]
+                "tags": tags
             })
-            doc
 
         if type == 'new':
             form["permlink"] = ''.join(random.choices(string.digits, k=10))  # random generator to create post permlink
@@ -194,7 +217,7 @@ class SteemWrapper(Post):
         except Exception as e:
             print(e)
 
-    def upload_images(self, repo=None, **kargs):
+    def upload_images(self, imgs: list, repo=None, **kargs) -> list:
         """send images to steemimages.com and get image links
 
         :param repo: dir path where images are stored.
@@ -205,34 +228,39 @@ class SteemWrapper(Post):
         img_list = []   # binary images
 
         # get image byte data
-        if not repo:  # get a default image (maybe for thumbnail ?)
-            test_img_path = '../data/lotte2.PNG'
-            with open(test_img_path, 'rb') as f:
-                b_img = f.read()
-                img_list.append(b_img)
-        else:
-            imgs_path = super().get_images_path(repo=repo)
-            for img in imgs_path:
-                # img_name_list.append(os.path.basename(img))
-                with open(img, 'rb') as f:
-                    b_img = f.read()
-                    img_list.append(b_img)
+        # if not imgs:  # get a default image (maybe for thumbnail ?)
+        #     test_img_path = '../data/lotte2.PNG'
+        #     with open(test_img_path, 'rb') as f:
+        #         b_img = f.read()
+        #         img_list.append(b_img)
+        # else:
+        #     imgs_path = super().get_images_path(repo=repo)
+        #     for img in imgs_path:
+        #         # img_name_list.append(os.path.basename(img))
+        #         with open(img, 'rb') as f:
+        #             b_img = f.read()
+        #             img_list.append(b_img)
         # print(img_list)
         # print(img_name_list)
-        for img, img_path in zip(img_list, imgs_path):
 
+        # for img, img_path in zip(img_list, imgs_path): (bytes 이미지, 이미지 path)
+        for idx, img in enumerate(imgs):  # (bytes 이미지)
             # digest, msg = utils_.SignImage.deriveDigest(img)
 
             # make TransactionBuilder instance with dummy data
             tx = transactionbuilder.TransactionBuilder(
                 None,
-                steemd_instance=sw.s.commit.steemd,
-                wallet_instance=sw.s.commit.wallet,
-                no_broadcast=sw.s.commit.no_broadcast,
-                expiration=sw.s.commit.expiration)
+                steemd_instance=self.s.commit.steemd,
+                wallet_instance=self.s.commit.wallet,
+                no_broadcast=self.s.commit.no_broadcast,
+                expiration=self.s.commit.expiration)
 
             # make "dummy" data and append it to tx
-            data = sw.wrap_data("./../data/test.txt")
+            # data = self.wrap_data(local_repo=self.dir_path + "/../data/test.txt")
+            data = copy(self.form["post"]["write"])
+            data["parent_author"] = "parent_author"
+            data["parent_permlink"] = "parent_permlink"
+            data["permlink"] = "permlink"
             test_d = operations.Comment(data)
             tx.appendOps([test_d])
             # pprint(tx.json())
@@ -253,7 +281,8 @@ class SteemWrapper(Post):
 
             # ref: https://johyungen.tistory.com/489
             # content = {"image": (os.path.basename(img_path), open(img_path, 'rb'))}
-            img_name = os.path.basename(img_path)
+            # img_name = os.path.basename(img_path)  # 로컬 레포가 아니기 때문에 사용 안 함
+            img_name = str(idx)
             content = {"image": (img_name, img)}
             end_point = "https://steemitimages.com"
             url = "{}/{}/{}".format(end_point, self.account, tx["signatures"][0])

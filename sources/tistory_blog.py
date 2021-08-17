@@ -144,6 +144,9 @@ class TistoryWrapper(Post):
         # 코드블럭 수정. 이거..왜 'pre'가 안 붙지?
         doc["content"] = self.attach_codeblock(doc["content"])
 
+        # 유튜브 비디오 넣기
+        doc["content"] = self.attach_youtube(doc["content"], doc["videos"])
+
         # pprint(doc)
         '''
             "write": {
@@ -180,11 +183,17 @@ class TistoryWrapper(Post):
 
         return content
 
-    def attach_youtube(self, content: str) -> str:
-        iframe = '<iframe width="560" height="315" src="{}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe> '
+    def attach_youtube(self, content: str, video_links: list) -> str:
         # ut_ = re.compile("https://www.youtube.com/embed/(.*)\?feature=oembed")
         # ut_.match(content)
         # content = re.sub("https://www.youtube.com/embed/(.*)\?feature=oembed", iframe , content)
+        iframe = '<iframe width="560" height="315" src="{}" title="YouTube video player" frameborder="0" ' \
+                 'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; ' \
+                 'picture-in-picture" allowfullscreen></iframe> '
+        for idx, video in enumerate(video_links):
+            display_source = video[1]  # 0: 일반 링크, 1: iframe용 임베디드 링크
+            ut_ = iframe.format(display_source.split('?')[0])
+            return content.replace("(video:{})".format(idx), ut_)
 
     def create_post(self, data):
 
