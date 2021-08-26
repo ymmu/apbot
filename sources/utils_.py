@@ -4,6 +4,7 @@ from pprint import pprint
 from urllib.parse import parse_qs, urlparse
 
 import markdown
+import notion
 import pytz
 from datetime import datetime, date
 
@@ -83,11 +84,11 @@ class SignImage(steembase.transactions.SignedTransaction):
 
         # 1. convert prefix to byte type
         prefix_ = 'ImageSigningChallenge'.encode('utf-8')
-        print(prefix_)
+        # print(prefix_)
 
         # 3. concat prefix and image
         msg = prefix_ + compat_bytes(message)
-        print('msg: ', msg)
+        # print('msg: ', msg)
 
         # 4. get image hash
         digest = hashlib.sha256(msg).digest()
@@ -321,7 +322,7 @@ class Session:
         if not sess_last_start:
             sess_last_start = self.start_t
         t_diff = now_timestamp(str_=False) - sess_last_start
-        print(t_diff.total_seconds())
+        print('{} mins went after authorization. '.format(t_diff.total_seconds()/60))  # 분처리로 하세
         if t_diff.total_seconds() / 60 >= self.t:  # 분 기준임
             return True
         else:
@@ -409,6 +410,10 @@ article_info = {
     "title": None,
     "tags": [],
     "images": [],
+    "codes": [],
+    "task": "",
+    "post_url": "",
+    "repo": "",
     "content": []
 }
 
@@ -640,14 +645,20 @@ def update_doc_notion(rst: object) -> object:
     # 글쓰기 페이지 > 소재 테이블 가져옴
     cv = get_notion_article_table()
     blog_ = list(rst.keys())[0]
-    for row in cv.collection.get_rows(search="publish"):
-        if row.blog == blog_ and row.title == rst[blog_]["title"]:
-            if rst[blog_]["status"] == "200":
-                row.status = "done"
-                row.url = rst[blog_]['post_url']
-            else:
-                row.error_msg = rst[blog_]["msg"]
-                row.status = rst[blog_]["status"] + " error"
+    for search in ["publish", "update"]:
+        for row in cv.collection.get_rows(search=search):
+            if row.blog == blog_ and row.title == rst[blog_]["title"]:
+                if rst[blog_]["status"] == "200":
+                    row.status = "done"
+                    row.post_url = rst[blog_]['url']
+                    log_t = datetime.now().strftime("%Y/%m/%d %H:%M")
+                    if search == "publish":
+                        row.published = log_t
+                    elif search == "update":
+                        row.updated = log_t
+                else:
+                    row.error_msg = rst[blog_]["msg"]
+                    row.status = rst[blog_]["status"] + " error"
 
 
 def get_docs_from_notion():
@@ -655,82 +666,102 @@ def get_docs_from_notion():
     cv = get_notion_article_table()
 
     article_list = []  # 발행할 글들(=publish 처리 된 글들) json 형태로 만들어서 저장
-    for row in cv.collection.get_rows(search="publish"):
-        # print(row.get_all_properties())
-        # print(row.__dir__())
-        # print(row._str_fields)
-        # print(row.timestamp.start, row.timestamp.end, row.timestamp.timezone)
-        # print(type(row.timestamp.start), row.timestamp.end, type(row.timestamp.timezone))
-        print(row)
-        timestamp_ = convert_to_timestamp(row.timestamp.start)
-        article_info = {
-            "title": row.title,
-            "blog": row.blog,
-            "category": row.category,
-            "timestamp": timestamp_,
-            "tags": [tag.lower() for tag in row.tags],
-            "images": [],
-            "videos": [],
-            "content": []
-        }
+    search_k = ["publish", "update", "test"]
+    for s_k in search_k:
+        for row in cv.collection.get_rows(search=s_k):
+            # print(row.get_all_properties())
+            # print(row.__dir__())
+            # print(row._str_fields)
+            # print(row.timestamp.start, row.timestamp.end, row.timestamp.timezone)
+            # print(type(row.timestamp.start), row.timestamp.end, type(row.timestamp.timezone))
+            timestamp_ = convert_to_timestamp(row.timestamp)
+            article_info = {
+                "title": row.title,
+                "blog": row.blog,
+                "category": row.category,
+                "timestamp": timestamp_,
+                "tags": [tag.lower() for tag in row.tags],
+                "images": [],
+                "videos": [],
+                "codes": [],
+                "task": row.status,
+                "post_url": "",
+                "repo": "notion",
+                "content": []
+            }
+            if row.status == 'update':
+                article_info["post_url"] = re.search(r"https://[a-z]+.tistory.com/[0-9]{1,7}", row.post_url).group()
 
-        for child in row.children:
-            # print(child.title, type(child), child.type, child.__dir__())
-            if child.type == 'image':
-                # article_info['images'].append(child.caption)
-                article_info['images'].append(download_img(child.source))  # bytes 저장임
-                article_info["content"].append("\n(img:{})\n".format(len(article_info['images']) - 1))
+            for child in row.children:
+                # print(child.title, child.space_info, child.__dict__, type(child), child.type, child.__dir__())
+                if child.type == 'image':
+                    # article_info['images'].append(child.caption)
+                    article_info['images'].append(download_img(child.source))  # bytes 저장임
+                    article_info["content"].append("\n(img:{})\n".format(len(article_info['images']) - 1))
 
-            elif child.type == 'header':
-                article_info["content"].append('# {}   '.format(child.title))
+                elif child.type == 'header':
+                    article_info["content"].append('# {}'.format(child.title))
 
-            elif child.type == 'sub_header':
-                article_info["content"].append('## {}   '.format(child.title))
+                elif child.type == 'sub_header':
+                    article_info["content"].append('## {}'.format(child.title))
 
-            elif child.type == 'sub_sub_header':
-                article_info["content"].append('### {}   '.format(child.title))
+                elif child.type == 'sub_sub_header':
+                    article_info["content"].append('### {}'.format(child.title))
 
-            elif child.type == 'text':
-                # print(type(child), child.type, child.__dir__())
-                article_info["content"].append('{}   \n'.format(child.title))
+                elif child.type == 'text':
+                    # print(child.title_plaintext, child.__dir__())
+                    if re.sub(" +", "", child.title) == "": # 그냥 공백
+                        # print('enter')
+                        article_info["content"].append('&nbsp;'.format(child.title))
+                    else:
+                        article_info["content"].append('{} &nbsp;'.format(child.title))
 
-            elif child.type == 'code':
-                article_info["content"].append(markdown.markdown("""```{}```""".format(child.title)))
+                elif child.type == 'code':
+                    # article_info["content"].append('```\n {} \n```'.format(child.title))
+                    # print(child.title)
+                    article_info['codes'].append(child.title)  # (유튜브링크, 임베디드링크)
+                    article_info["content"].append("\n\n(code:{})\n\n".format(len(article_info['codes']) - 1))
 
-            elif child.type == 'bulleted_list':
-                def attach_list(parent, article_info):
-                    article_info["content"].append(markdown.markdown(' * {}'.format(parent.title)))
-                    article_info["content"].append('\n')
-                    # print('  - 리스트 하위 :')
-                    for c in parent.children:
-                        # print(c.title, type(c), c.type, c.__dir__())
-                        # attach_list(c, article_info, sub_num)
-                        article_info["content"].append(markdown.markdown(' * {}'.format(c.title)))
-                        article_info["content"].append('\n')
-                    return article_list
+                elif child.type == 'bulleted_list' or child.type == 'numbered_list':
+                    def attach_list(parent, list_b, sub_num=0):
+                        list_b += '    '*sub_num +' - {} \n'.format(parent.title)
+                        # print(list_b) 제대로 찍힘
+                        sub_num += 1
+                        for c in parent.children:
+                            list_b = attach_list(c, list_b, sub_num)
+                            # article_info["content"].append(markdown.markdown('\t * {}'.format(c.title)))
+                            # article_info["content"].append('\n')
+                        return list_b
 
-                article_list = attach_list(child, article_info)
-                # print(child.title)
-                # article_info["content"].append(markdown.markdown(' * {}'.format(child.title)))
-                # article_info["content"].append('\n')
-                # print('  - 리스트 하위 :')
-                # for c in child.children:
-                #     print(c.title, type(c), c.type, c.__dir__())
-                #     article_info["content"].append(markdown.markdown(' * {}'.format(c.title)))
+                    list_b = '\n'
+                    article_info["content"].append(attach_list(child, list_b))
+                # elif child.type == 'numbered_list':  # 블럭에 번호기록 안 함?..답답하구먼.
+                #     article_info["content"].append(' * {}'.format(child.title))
                 #     article_info["content"].append('\n')
+                #     print(child._str_fields(), child.title_plaintext, child._client, type(child), child.type, child.__dir__())
 
-            elif child.type == 'video':
-                # print(type(child), child.type, child.__dir__())
-                # print(child.source)
-                print(child.display_source)
-                article_info['videos'].append((child.source, child.display_source))  # (유튜브링크, 임베디드링크)
-                article_info["content"].append("\n(video:{})\n".format(len(article_info['videos']) - 1))
+                elif child.type == "quote" or child.type == "callout":
+                    article_info["content"].append(' > {}'.format(child.title))
+                    article_info["content"].append('\n')
 
+                elif child.type == "divider":
+                    article_info["content"].append('---')
+                    article_info["content"].append('\n')
 
-            else:
-                print(child.title, type(child), child.type, child.__dir__())
+                elif child.type == 'video':
+                    # print(type(child), child.type, child.__dir__())
+                    # print(child.source)
+                    print(child.display_source)
+                    article_info['videos'].append((child.source, child.display_source))  # (유튜브링크, 임베디드링크)
+                    article_info["content"].append("\n(video:{})\n".format(len(article_info['videos']) - 1))
 
-        article_list.append(('notion', article_info))
+                elif child.type == 'bookmark':
+                    article_info["content"].append('{}'.format(child.link))
+
+                else:
+                    print(child.child_list_key, child.id, type(child), child.type, child.__dir__())
+            # child.title,
+            article_list.append(('notion', article_info))
 
     return article_list
 
@@ -750,26 +781,36 @@ def convert_to_timestamp(time_):
         timestamp_ = datetime.combine(time_, datetime.min.time())
     else:
         # google docs
-        re_base = u"[0-9]{2,4}(-|/)*[0-9]{1,2}(-|/)*[0-9]{1,2}"
+        re_base = r"[0-9]{2,4}(-|/)*[0-9]{1,2}(-|/)*[0-9]{1,2}"
 
-        if re.match(re_base + u"T[0-9]{2}:[0-9]{2}", time_):
+        if re.match(re_base + "T[0-9]{2}:[0-9]{2}", time_):
             timestamp_ = datetime.strptime(time_, "%y-%m-%dT%H:%M")
 
+        elif re.match(re_base + " *[0-9]{2}:[0-9]{2}", time_):
+            timestamp_ = datetime.strptime(time_, "%y/%m/%d %H:%M")
+
         # notion
-        elif re.match(re_base + u" *[0-9]{1,2}:*[0-9]{1,2}:*[0-9]{1,2}", time_):  # notion-py에서 시간 전달 형식
+        elif re.match(re_base + " *[0-9]{1,2}:*[0-9]{1,2}:*[0-9]{1,2}", time_):  # notion-py에서 시간 전달 형식
+            timestamp_ = datetime.strptime(time_, "%y/%m/%d %H:%M")
+
+        elif re.match(re_base + " *[0-9]{1,2}:*[0-9]{1,2} (AM|PM)", time_):  # notion 에서 시간형식
             timestamp_ = datetime.strptime(time_, "%y/%m/%d %m:%M %p")
 
-        elif re.match(re_base + u" *[0-9]{1,2}:*[0-9]{1,2} (AM|PM)", time_):  # notion 에서 시간형식
-            timestamp_ = datetime.strptime(time_, "%y/%m/%d %m:%M %p")
-
-        elif re.match(re_base, time_):
-            timestamp_ = datetime.strptime(time_, "%y-%m-%d")
+        elif re.match(r"[0-9]{2,4}(/)*[0-9]{1,2}(/)*[0-9]{1,2}", time_):
+            timestamp_ = datetime.strptime(time_, "%y/%m/%d")
             # print(datetime.strptime(items[2], "%y-%m-%d").timetuple())
             # time.struct_time(tm_year=2021,
             # tm_mon=8, tm_mday=11, tm_hour=0, tm_min=0, tm_sec=0, tm_wday=2, tm_yday=223, tm_isdst=-1)
+        elif re.match(r"[0-9]{2}(/)*[0-9]{1,2}(/)*[0-9]{1,2}", time_):
+            timestamp_ = datetime.strptime(time_, "%y/%m/%d")
 
-    if (timestamp_ - datetime.now()).total_seconds() > 0:  # 예약시간이 현재보다 과거일 때
-        timestamp_ = time.mktime(timestamp_.timetuple())
+        elif re.match(r"[0-9]{2}(-)*[0-9]{1,2}(-)*[0-9]{1,2}", time_):
+            timestamp_ = datetime.strptime(time_, "%y/%m/%d")
+
+    if timestamp_ and (timestamp_ - datetime.now()).total_seconds() > 0:  # 예약시간이 현재보다 과거일 때
+        # timestamp_ = time.mktime(timestamp_.timetuple())
+        # print(datetime.fromtimestamp(timestamp_))
+        timestamp_ = timestamp_.timestamp()
     else:
         timestamp_ = None
 

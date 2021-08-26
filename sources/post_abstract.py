@@ -36,15 +36,19 @@ class Post(metaclass=ABCMeta):
         return imgs_path
 
     @staticmethod
-    def attach_images(text: str, img_links: list) -> str:
+    def attach_images(blog_: str, text: str, img_links: list) -> str:
         """ attach image links in the text
 
+        :param blog_: 블로그 종류
         :param text: doc contents
         :param img_links: image url list
         :return:
         """
         # image name = image order for arrangement.
-        wrap_ = '<br><center>![{}](https://steemitimages.com/600x0/{})</center><br>'
+        if blog_ == "steemit":
+            wrap_ = '<br><center>![{}](https://steemitimages.com/600x0/{})</center><br>'
+        elif blog_ == "tistory":
+            wrap_ = '{}'
         # print(type(img_links[0]))
         for img_info in img_links:
             num = img_info[0].split('.')[0]
@@ -78,10 +82,15 @@ class Post(metaclass=ABCMeta):
         '''
         if local_repo:
             local_repo = os.path.abspath(local_repo)
-            # print(glob.glob(data_dir + "/*"))
-            for idx, d in enumerate(glob.glob(local_repo + "/*")):
+            print(local_repo)
+            repo_data = glob.glob(local_repo + r"\*")
+            while len(repo_data) == 1 and os.path.isdir(repo_data[0]):  # 안에 또 디렉토리로 들어가 있으면
+                repo_data = glob.glob(repo_data[0] + r"\*")
+
+            for idx, d in enumerate(repo_data):
 
                 if d.endswith(('.docx', '.txt', '.pdf')):
+
                     text_.append(d)
                 elif d.lower().endswith(('.bmp', '.png', '.jpg', '.gif')):
                     # print(d)
@@ -102,7 +111,7 @@ class Post(metaclass=ABCMeta):
                     with open(new_d, 'rb') as f:
                         data = f.read()
                     images_.append((num_, data)) # (이미지 번호, 이미지 bytes 데이터) 새 이미지 이름 넣어줌
-                else:
+                else: # 동영상
                     videos_.append(d)
 
             if len(text_) > 1:
@@ -110,7 +119,7 @@ class Post(metaclass=ABCMeta):
             elif len(text_) == 0:
                 raise Exception('No text file')
 
-            print('title: ', text_[0])
+            print('text path: ', text_[0])
             if text_[0].endswith('docx'):
                 doc = docx.Document(text_[0])
                 for docpara in doc.paragraphs:
@@ -122,9 +131,22 @@ class Post(metaclass=ABCMeta):
                         # print(str(docpara.text))
                         lines_.append(','.join(hlink)+'\n')
 
+
+            # # docx파일 ->txt로 변환. 다른방법. 이거..변환하면 \n이 줄마다 들어감..;
+            # if text_[0].endswith('docx'):
+            #     import docx2txt
+            #     # Passing docx file to process function
+            #     text = docx2txt.process(text_[0])
+            #     # Saving content inside docx file into output.txt file
+            #     f_new_path = os.path.splitext(text_[0])[0] + ".txt"
+            #     with open(f_new_path, "w", encoding='utf-8') as text_file:
+            #         print(text, file=text_file)
+            #     # txt 파일로 재지정
+            #     text_[0] = f_new_path
+
             else:
                 with open(text_[0], 'r', encoding='utf8') as f:
-                    lines = f.readlines()
+                    lines_ = f.readlines()
 
         # print('lines: ', lines)
         # print('images: ', images_)

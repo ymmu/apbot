@@ -71,7 +71,20 @@ class SteemWrapper(Post):
         :param img_links:
         :return:
         """
-        return Post.attach_images(text, img_links)
+        # return Post.attach_images(blog_, text, img_links)
+        # image name = image order for arrangement.
+
+        wrap_ = '<br><center>![{}](https://steemitimages.com/600x0/{})</center><br>'
+        # print(type(img_links[0]))
+        for img_info in img_links:
+            num = img_info[0].split('.')[0]
+            if 'url' in img_info[1].keys():
+                wrap_img = wrap_.format(num, img_info[1]['url'])  # image name, image link
+                text = text.replace('(img:{})'.format(num), wrap_img)
+            else:
+                pprint('No image url: ', img_info)
+
+        return text
 
     def attach_youtube(self, content: str, video_links: list) -> str:
         for idx, video in enumerate(video_links):
@@ -142,8 +155,8 @@ class SteemWrapper(Post):
 
 
             # 이미지 링크 얻어오기
-            # img_links = self.upload_images(doc['images']) # 실전
-            img_links = [('0', {'url': 'https://cdn.steemitimages.com/DQmPCQ862ikNrtTmD3QEjJoGoGybuDjVB4obyMApNUGNyoL/0'})]
+            img_links = self.upload_images(doc['images']) # 실전
+            # img_links = [('0', {'url': 'https://cdn.steemitimages.com/DQmPCQ862ikNrtTmD3QEjJoGoGybuDjVB4obyMApNUGNyoL/0'})]
             print(img_links)
             # 본문에 이미지 삽입
             body = SteemWrapper.attach_images(body, img_links)
