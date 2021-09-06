@@ -39,7 +39,7 @@ class TistoryWrapper(Post):
         return super().get_repo()
 
     @staticmethod
-    def attach_images(text: str, img_links: list) -> str:
+    def attach_images(text: str, img_links: list, type: str = "replacer") -> str:
         """ attach image links in the text
 
         :param blog_:
@@ -50,13 +50,13 @@ class TistoryWrapper(Post):
         # return Post.attach_images(blog_, text, img_links)
         for img_info in img_links:
             num = img_info[0].split('.')[0]
-            if 'replacer' in img_info[1].keys():
+            if type == 'replacer' and type in img_info[1].keys():
                 text = text.replace('(img:{})'.format(num), img_info[1]['replacer'])
-            if 'url' in img_info[1].keys():
+            if type == 'url' and type in img_info[1].keys():
                 wrap_ = '<center><img src="{}" alt="0" /></center>'.format(img_info[1]['url'])
                 text = text.replace('(img:{})'.format(num), wrap_)
             else:
-                pprint('No image replacer or url: ', img_info)
+                print('No image replacer or url: ', img_info)
 
         return text
 
@@ -79,6 +79,7 @@ class TistoryWrapper(Post):
 
         # md -> html로 변경
         for idx, t in enumerate(doc["content"]):
+            t = re.sub("\n", '&nbsp;', t)
             doc["content"][idx] = markdown.markdown(t)
 
         doc["content"] = ''.join(doc["content"])
@@ -175,7 +176,6 @@ class TistoryWrapper(Post):
         # 유튜브 비디오 넣기
         doc["content"] = self.attach_youtube(doc["content"], doc["videos"])
 
-
         # print(doc["content"])
         '''
             "write": {
@@ -204,10 +204,10 @@ class TistoryWrapper(Post):
         :return:
         """
         # image name = image order for arrangement.
-        wrap_ = """<pre class="python" data-ke-language="python"><code>{}</code></pre>"""
+        wrap_ = """<pre class="codeblock" data-ke-language="{}"><code>{}\n</code></pre>"""
         # print(type(img_links[0]))
         for idx, code in enumerate(codes):
-            wrap_code = wrap_.format(code)  # image name, image link
+            wrap_code = wrap_.format(code[0],code[1])  # image name, image link
             text = text.replace('(code:{})'.format(idx), wrap_code)
 
         return text
@@ -243,10 +243,8 @@ class TistoryWrapper(Post):
 
         return content
 
-
-
     def attach_ad(self, content: str) -> str:
-        with open(os.path.join(self.dir_path, 'templates/tistory_ad_script.json'), 'r', encoding='utf-8')as f:
+        with open(os.path.join(self.dir_path, 'templates/tistory_ad_script.json'), 'r', encoding='utf-8') as f:
             ad_codes = json.load(f)['tistory']
 
         # pprint(ad_codes)
@@ -323,11 +321,11 @@ class TistoryWrapper(Post):
         else:
             form = copy(self.form['post']['read'])
             req_url = form.pop('req_url')
-            form.update({"access_token": self.sess_.get_token(), "postId": post_id, "blogName":self.account})
+            form.update({"access_token": self.sess_.get_token(), "postId": post_id, "blogName": self.account})
             try:
                 res = requests.get(req_url, params=form)
                 if res.status_code == 200:
-                   #print(res.text)
+                    # print(res.text)
                     return res.json()
                 else:
                     raise Exception(res)
@@ -343,13 +341,13 @@ class TistoryWrapper(Post):
         new_data["postId"] = new_data.pop("post_url").split("/")[-1]  # 수정할 포스트번호
         form.update((k, new_data[k]) for k in new_data.keys() & form.keys())
         req_url = form.pop('req_url')
-        form.update({"access_token": self.sess_.get_token(), "blogName":self.account})
+        form.update({"access_token": self.sess_.get_token(), "blogName": self.account})
         pprint(form)
 
         try:
             res = requests.post(req_url, data=form)
             if res.status_code == 200:
-               #print(res.text)
+                # print(res.text)
                 return res.json()
             else:
                 raise Exception(res)
@@ -446,7 +444,6 @@ class Tistory_session(utils_.Session):
 
 
 if __name__ == '__main__':
-
     # ad json 생성
     # ad = {
     #     "tistory": {
@@ -467,7 +464,6 @@ if __name__ == '__main__':
     # print("\n\n 1. update_category test")
     ts.update_categories()
 
-
     # ok
     # print("\n\n 2. get_posts test")
     # res = ts.get_posts(page=1)
@@ -477,7 +473,6 @@ if __name__ == '__main__':
     # print("\n\n 3. get_post test")
     # res = ts.get_post(post_id="212")
     # pprint(res)
-
 
     # ok
     # print("\n\n 4. update_post test")
@@ -502,6 +497,3 @@ if __name__ == '__main__':
     #                         +'</ul>\n'\
     #                         +'<ul>\n'
     # pprint(ts.update_post(new_res))
-
-
-

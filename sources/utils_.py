@@ -352,7 +352,7 @@ class Session:
 
             # get code using selenium
             # 안 된다..불가능한 듯
-            # chrome = webdriver.Chrome('../chromedriver.exe')
+            # chrome = webdriver.Chrome('../chromedriver_.exe')
             # print(auth_page)
             # chrome.get(auth_page)
             # chrome.implicitly_wait(2)
@@ -712,15 +712,19 @@ def get_docs_from_notion():
                     # print(child.title_plaintext, child.__dir__())
                     if re.sub(" +", "", child.title) == "": # 그냥 공백
                         # print('enter')
-                        article_info["content"].append('\n'.format(child.title))
+                        article_info["content"].append('\n')
+                    elif re.match('\[.*\]\(.*\)', child.title): # 유튜브 주소면
+                        child.title = re.findall('https://[a-zA-Z0-9.]+/[a-zA-Z0-9]+', child.title)[0]
+                        article_info["content"].append('{} \n'.format(child.title))
                     else:
                         article_info["content"].append('{} \n'.format(child.title))
 
                 elif child.type == 'code':
                     # article_info["content"].append('```\n {} \n```'.format(child.title))
-                    # print(child.title)
-                    article_info['codes'].append(child.title)  # (유튜브링크, 임베디드링크)
-                    article_info["content"].append("\n\n(code:{})\n\n".format(len(article_info['codes']) - 1))
+                    # print(child.title, child.language)
+                    # print(child.__dir__())
+                    article_info['codes'].append((child.language, child.title))  # (유튜브링크, 임베디드링크)
+                    article_info["content"].append("\n(code:{})\n".format(len(article_info['codes']) - 1))
 
                 elif child.type == 'bulleted_list' or child.type == 'numbered_list':
                     def attach_list(parent, list_b, sub_num=0):
@@ -751,7 +755,7 @@ def get_docs_from_notion():
                 elif child.type == 'video':
                     # print(type(child), child.type, child.__dir__())
                     # print(child.source)
-                    print(child.display_source)
+                    print('utils_, video : ', child.display_source)
                     article_info['videos'].append((child.source, child.display_source))  # (유튜브링크, 임베디드링크)
                     article_info["content"].append("\n(video:{})\n".format(len(article_info['videos']) - 1))
 

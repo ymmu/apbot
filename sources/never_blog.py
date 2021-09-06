@@ -36,7 +36,7 @@ class NaverWrapper(Post):
         # self.form = self.get_data_form()
         self.repo = self.get_repo()
         # self.sess_ = Naver_session(self.form['outh'], self.key_, account, self.blog_)
-        self.driver = None  # webdriver.Chrome('../chromedriver.exe')
+        self.driver = None  # webdriver.Chrome('../chromedriver_.exe')
 
     def get_data_form(self):
         return super().get_data_form()

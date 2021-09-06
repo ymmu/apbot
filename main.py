@@ -70,11 +70,14 @@ def perform(doc_: object):
         try:
             # pass
             pprint(sw.wrap_data(doc))
-            # if doc["status"] == 'publish': # 노션만 되어있음
+            # if task == 'publish': # 노션만 되어있음
             #     rst = sw.create_post(doc)
-            # elif doc["status"] == 'update': # 노션만 되어있음
+            # elif task == 'update': # 노션만 되어있음
             #     rst = sw.update_post(doc)
-            #
+
+            # pprint(rst[0])
+            # pprint(rst[1])
+
             # ''' rst
             #                 {
             #                   "tistory":{

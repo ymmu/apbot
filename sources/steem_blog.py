@@ -33,7 +33,7 @@ import argparse
 from diff_match_patch import diff_match_patch
 
 from sources.post_abstract import Post
-from beem import Steem
+from beem import Steem as beem_steem
 from steemengine.wallet import Wallet
 
 
@@ -89,28 +89,36 @@ class SteemWrapper(Post):
         return text
 
     def attach_youtube(self, content: str, video_links: list) -> str:
+        import re
         for idx, video in enumerate(video_links):
             source = video[0]  # 0: 일반 링크, 1: iframe용 임베디드 링크
+            source = re.findall('https://[a-zA-Z0-9.]+/[a-zA-Z0-9]+', source)[0]
+            print('fffff', source)
             content.replace("(video:{})".format(idx), source)
         return content
 
     def create_post(self, data):
+        rst, rst_2 = None, None
         try:
             data = self.wrap_data(data)
-            pprint(self.s.commit.post(**data))
+            rst = self.s.commit.post(**data)
+            pprint(rst)
+            c = input('enter: ')
 
             if data['tags'].split(' ')[0] == 'hive-101145':
                 # 스코판이면 수수료 보내는 작업
-                stm = Steem(wif=self.key_['private_active_key'])
+                stm = beem_steem(wif=self.key_['private_active_key'])
                 # print(stm.get_steem_per_mvest())
                 # pprint(stm.__dict__)
 
                 wallet = Wallet(self.account, steem_instance=stm)
-                rst = wallet.transfer("sct.postingfee", 1, "SCT", memo=f"@{self.account}/{data['permlink']}")
+                rst_2 = wallet.transfer("sct.postingfee", 1, "SCT", memo=f"@{self.account}/{data['permlink']}")
                 print('postingfee response: ')
-                pprint(rst)
+                pprint(rst_2)
 
             print("Post created successfully")
+
+            return rst, rst_2
 
         except Exception as e:
             print('error create_post in steem_blog. ')
@@ -139,6 +147,8 @@ class SteemWrapper(Post):
         '''
 
         form = copy(self.form['post']['write'])
+
+        # 로컬 레포용 임시?
         img_links = [('0.png', {
             'url': 'https://cdn.steemitimages.com/DQmdBgywwgbakzBXHWLZRRRSxVFsSTV8QCzT6Nzb3KQGiBg/lotte2_s.png'}),
                      ('1.png', {
@@ -167,15 +177,15 @@ class SteemWrapper(Post):
 
             body = ''.join(doc['content'])
 
-
             # 이미지 링크 얻어오기
-            img_links = self.upload_images(doc['images']) # 실전
+            img_links = self.upload_images(doc['images'])  # 실전
             # img_links = [('0', {'url': 'https://cdn.steemitimages.com/DQmPCQ862ikNrtTmD3QEjJoGoGybuDjVB4obyMApNUGNyoL/0'})]
             print(img_links)
             # 본문에 이미지 삽입
             body = SteemWrapper.attach_images(body, img_links)
 
             # 유튜브 링크 붙이기
+            print(doc)
             body = self.attach_youtube(body, doc["videos"])
 
             # 태그 붙이기
