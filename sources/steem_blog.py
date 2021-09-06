@@ -33,6 +33,8 @@ import argparse
 from diff_match_patch import diff_match_patch
 
 from sources.post_abstract import Post
+from beem import Steem
+from steemengine.wallet import Wallet
 
 
 class SteemWrapper(Post):
@@ -96,6 +98,18 @@ class SteemWrapper(Post):
         try:
             data = self.wrap_data(data)
             pprint(self.s.commit.post(**data))
+
+            if data['tags'].split(' ')[0] == 'hive-101145':
+                # 스코판이면 수수료 보내는 작업
+                stm = Steem(wif=self.key_['private_active_key'])
+                # print(stm.get_steem_per_mvest())
+                # pprint(stm.__dict__)
+
+                wallet = Wallet(self.account, steem_instance=stm)
+                rst = wallet.transfer("sct.postingfee", 1, "SCT", memo=f"@{self.account}/{data['permlink']}")
+                print('postingfee response: ')
+                pprint(rst)
+
             print("Post created successfully")
 
         except Exception as e:
@@ -332,6 +346,7 @@ if __name__ == '__main__':
     patch_ = sw.wrap_data("./../data/test.txt", type='update')
     print('patch: \n')
     pprint(patch_)
+
     # sw.update_post(patch_, post)
 
     # 2.
@@ -375,5 +390,3 @@ if __name__ == '__main__':
     #
     #img_links = sw.upload_images(repo='../data')
     #print(img_links)
-
-

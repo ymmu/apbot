@@ -700,21 +700,21 @@ def get_docs_from_notion():
                     article_info["content"].append("\n(img:{})\n".format(len(article_info['images']) - 1))
 
                 elif child.type == 'header':
-                    article_info["content"].append('# {}'.format(child.title))
+                    article_info["content"].append('# __{}__'.format(child.title))
 
                 elif child.type == 'sub_header':
-                    article_info["content"].append('## {}'.format(child.title))
+                    article_info["content"].append('## __{}__'.format(child.title))
 
                 elif child.type == 'sub_sub_header':
-                    article_info["content"].append('### {}'.format(child.title))
+                    article_info["content"].append('### __{}__'.format(child.title))
 
                 elif child.type == 'text':
                     # print(child.title_plaintext, child.__dir__())
                     if re.sub(" +", "", child.title) == "": # 그냥 공백
                         # print('enter')
-                        article_info["content"].append('&nbsp;'.format(child.title))
+                        article_info["content"].append('\n'.format(child.title))
                     else:
-                        article_info["content"].append('{} &nbsp;'.format(child.title))
+                        article_info["content"].append('{} \n'.format(child.title))
 
                 elif child.type == 'code':
                     # article_info["content"].append('```\n {} \n```'.format(child.title))

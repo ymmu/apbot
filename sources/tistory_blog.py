@@ -266,7 +266,7 @@ class TistoryWrapper(Post):
         for idx, video in enumerate(video_links):
             display_source = video[1]  # 0: 일반 링크, 1: iframe용 임베디드 링크
             ut_ = iframe.format(display_source.split('?')[0])
-            content.replace("(video:{})".format(idx), ut_)
+            content = content.replace("(video:{})".format(idx), ut_)
         return content
 
     def create_post(self, data):
@@ -397,7 +397,6 @@ class TistoryWrapper(Post):
         try:
             res = requests.get(req_url, params=form)
             if res.status_code == 200:
-                # print(res.text)
                 return res.json()
             else:
                 print('get_cate func')
@@ -420,6 +419,26 @@ class TistoryWrapper(Post):
                 print('유사단어 찾기 구현 안 됨.  default 값: Jungle_Life \n')
                 return (default_, cate[default_])  # 카테고리 이름, 번호
 
+    def update_categories(self):
+        """카테고리 이름:번호 업데이트 후 json 저장
+
+        :return:
+        """
+        categories = self.get_categories()
+        # pprint(categories)
+        categories = categories['tistory']['item']['categories']
+        cate_dict = {}
+        for cate in categories:
+            cate_dict[cate['name'].lower()] = cate['id']
+
+        with open(self.dir_path + '/templates/categories.json', 'w', encoding='utf-8') as f:
+            cate_info = {
+                "tistory": cate_dict
+            }
+            json.dump(cate_info, fp=f, ensure_ascii=False)
+
+        print('tistory categories were updated.')
+
 
 class Tistory_session(utils_.Session):
     def __init__(self, form, key_, account, blog_):
@@ -428,30 +447,26 @@ class Tistory_session(utils_.Session):
 
 if __name__ == '__main__':
 
-    ad = {
-        "tistory": {
-            "middle_1": '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2743596611810852" crossorigin="anonymous"></script><ins class="adsbygoogle" style="display:block; text-align:center;" data-ad-layout="in-article" data-ad-format="fluid" data-ad-client="ca-pub-2743596611810852" data-ad-slot="9584375938"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script>'
-                    }
-    }
-    with open('./templates/tistory_ad_script.json', 'w', encoding='utf-8') as f:
-        json.dump(ad,f, ensure_ascii=False)
+    # ad json 생성
+    # ad = {
+    #     "tistory": {
+    #         "middle_1": '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2743596611810852" crossorigin="anonymous"></script><ins class="adsbygoogle" style="display:block; text-align:center;" data-ad-layout="in-article" data-ad-format="fluid" data-ad-client="ca-pub-2743596611810852" data-ad-slot="9584375938"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script>'
+    #                 }
+    # }
+    # with open('./templates/tistory_ad_script.json', 'w', encoding='utf-8') as f:
+    #     json.dump(ad,f, ensure_ascii=False)
 
-    # ts = TistoryWrapper("myohyun")
+    ts = TistoryWrapper("myohyun")
 
     # ok
     # print("\n\n 1. get_category test")
     # categories = ts.get_categories()
     # pprint(categories)
-    # categories = categories['tistory']['item']['categories']
-    # cate_dict ={}
-    # for cate in categories:
-    #     cate_dict[cate['name'].lower()] = cate['id']
-    #
-    # with open('./templates/categories.json', 'w', encoding='utf-8') as f:
-    #     cate_info = {
-    #         "tistory": cate_dict
-    #     }
-    #     json.dump(cate_info, fp=f, ensure_ascii=False)
+
+    # ok
+    # print("\n\n 1. update_category test")
+    ts.update_categories()
+
 
     # ok
     # print("\n\n 2. get_posts test")

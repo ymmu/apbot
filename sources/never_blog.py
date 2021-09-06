@@ -69,7 +69,8 @@ class NaverWrapper(Post):
                 continue
 
             # 이미지
-            # if (re.sub("[가-힣a-zA-Z*\"\'~#@&\^\(\)\-_ ]+", "", line) == line and line != '\n') or len((re.findall("[ *사진* *]*[0-9]{1,2}", line))) > 0:
+            # if (re.sub("[가-힣a-zA-Z*\"\'~#@&\^\(\)\-_ ]+", "", line) == line and line != '\n')
+            # or len((re.findall("[ *사진* *]*[0-9]{1,2}", line))) > 0:
             if re.match("( *(사진)* *[0-9]{1,2}[ ,./]*){1,3}\n", line):
                 img_num_sep = re.compile("[0-9]{1,2}").findall(line.replace("\n", ""))
                 # paragraphs.extend([tmp, line]) # 이미지 표시 그대로 넣는건데 막음
@@ -80,7 +81,7 @@ class NaverWrapper(Post):
             # 동영상
             # elif re.sub("[\[\]\(\)* \n0-9]", "", line) == '동영상':
             elif "영상" in line:
-                paragraphs.extend([tmp, line])
+                paragraphs.extend([tmp+'\n', line+'\n'])
                 paragraphs.extend(["동영상"])
                 tmp = ''
 
@@ -117,30 +118,40 @@ class NaverWrapper(Post):
         time.sleep(2)
         WebDriverWait(self.driver, 10).until(ec.element_to_be_clickable((By.XPATH,
                                                                          '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[4]/div[2]/div/div/div[2]/form/div/fieldset/div[1]/button[1]'))).click()
+        try:
+            video = videos_path.pop(0) # 첫번째 것부터 팝. 간혹 동영상 여러 개일 때 있음
 
-        video = videos_path.pop()
-        print(video)
-        pyperclip.copy(video)
-        pyautogui.sleep(1)
-        # pyautogui.write(img) # 한글 적용 안 됨
-        # pyautogui.click()
-        pyautogui.hotkey("ctrl", "v")  # 이건 딴데 클릭하면 망함..
-        pyautogui.sleep(1)
-        pyautogui.press('enter')
+            print(video)
+            pyperclip.copy(video)
+            pyautogui.sleep(1)
+            # pyautogui.write(img) # 한글 적용 안 됨
+            # pyautogui.click()
+            pyautogui.hotkey("ctrl", "v")  # 이건 딴데 클릭하면 망함..
+            pyautogui.sleep(1)
+            pyautogui.press('enter')
 
-        time.sleep(1)
-        # 제목입력
-        (self.driver
-         .find_element_by_xpath('/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[4]/div[2]/div/div/div[2]/form/div[3]/div[2]/div[2]/fieldset/div[1]/div[2]/input')
-         .send_keys("제품영상")
-         )
-        time.sleep(50)
-        (self.driver
-         .find_element_by_xpath('/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[4]/div[2]/div/div/div[2]/form/div[4]/button')
-         .click()
-         )
+            time.sleep(1)
+            # 제목입력
+            (self.driver
+             .find_element_by_xpath(
+                '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[4]/div[2]/div/div/div[2]/form/div[3]/div[2]/div[2]/fieldset/div[1]/div[2]/input')
+             .send_keys("제품영상")
+             )
+            time.sleep(50)
+            (self.driver
+             .find_element_by_xpath('/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[4]/div[2]/div/div/div[2]/form/div[4]/button')
+             .click()
+             )
 
-        print('in upload video: ', video)
+            print('in upload video: ', video)
+
+        except IndexError as e:
+            # 동영상이 없으면 그냥 나감
+            (self.driver
+             .find_element_by_xpath(
+                '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[4]/div[2]/div/div/div[2]/form/div[4]/button')
+             .click()
+             )
 
     def upload_images(self, nums: list, repo: str = None, **kargs):
         """네이버 이미지는 셀레니움으로 조작해서 올림
@@ -291,7 +302,7 @@ class NaverWrapper(Post):
             # 작성중 글 팝업 나오면 처리
             # print(driver.current_url)
             self.driver.switch_to.frame('mainFrame')
-            WebDriverWait(self.driver, 10).until(
+            WebDriverWait(self.driver, 5).until(
                 ec.element_to_be_clickable((By.XPATH,
                                             "/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[4]/div[2]/div[3]/button[1]"))).click()
 
@@ -301,7 +312,7 @@ class NaverWrapper(Post):
 
         try:
             # 우측 헬프 탭 닫기
-            WebDriverWait(self.driver, 10).until(
+            WebDriverWait(self.driver, 5).until(
                 ec.element_to_be_clickable((By.XPATH,
                                             '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[1]/article/div/header/button'))).click()
 
@@ -310,33 +321,6 @@ class NaverWrapper(Post):
             print('No help tab.')
 
         try:
-            # # 템플릿 불러오기
-            # def choose_template(driver):
-            #     driver.find_element_by_xpath(
-            #         '/html/body/div[1]/div/div[3]/div/div/div[1]/div/header/div[1]/ul/li[18]/button').click()
-            #     time.sleep(2)
-            #     # 내 템플릿
-            #     driver.find_element_by_xpath(
-            #         '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[1]/aside/div/div[2]/ul/li[3]/button').click()
-            #     time.sleep(2)
-            #     # 가장 상단의 템플릿 선택
-            #     driver.find_element_by_xpath(
-            #         '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[1]/aside/div/div[3]/div[1]/div[2]/ul/li[1]/a').click()
-            #
-
-            # 정렬
-            WebDriverWait(self.driver, 20).until(
-                ec.element_to_be_clickable((By.XPATH,
-                                            '/html/body/div[1]/div/div[3]/div/div/div[1]/div/header/div[2]/ul/li[12]/div/button'))).click()
-
-            # align_ = self.driver.find_element_by_xpath(
-            #     '/html/body/div[1]/div/div[3]/div/div/div[1]/div/header/div[2]/ul/li[12]/div/button')
-            # align_.click()
-            time.sleep(0.5)
-            WebDriverWait(self.driver, 20).until(
-                ec.element_to_be_clickable((By.XPATH,
-                                            '/html/body/div[1]/div/div[3]/div/div/div[1]/div/header/div[2]/ul/li[12]/div/div/button[2]'))).click()
-            time.sleep(1)
 
             # 내용 압축풀고 가져오기 -----
             if not test_repo:
@@ -357,9 +341,9 @@ class NaverWrapper(Post):
             def is_same(name):
                 name_ = os.path.basename(name).split(".")[0]
                 rst = None #(name, name_, None)
-                print(name, name_)
+                # print(name, name_)
                 for p in p_date:
-                    print(p[0],name_)
+                    # print(p[0],name_)
                     if name_ == p[0]:
                         print('here')
                         rst = (name, name_, p[1])
@@ -384,13 +368,41 @@ class NaverWrapper(Post):
 
                 title_, paragraphs, images_, videos_ = self.wrap_data(folder_p)
 
+                # # 템플릿 불러오기
+                # def choose_template(driver):
+                #     driver.find_element_by_xpath(
+                #         '/html/body/div[1]/div/div[3]/div/div/div[1]/div/header/div[1]/ul/li[18]/button').click()
+                #     time.sleep(2)
+                #     # 내 템플릿
+                #     driver.find_element_by_xpath(
+                #         '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[1]/aside/div/div[2]/ul/li[3]/button').click()
+                #     time.sleep(2)
+                #     # 가장 상단의 템플릿 선택
+                #     driver.find_element_by_xpath(
+                #         '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[1]/aside/div/div[3]/div[1]/div[2]/ul/li[1]/a').click()
+                #
+
+                # 정렬
+                WebDriverWait(self.driver, 10).until(
+                    ec.element_to_be_clickable((By.XPATH,
+                                                '/html/body/div[1]/div/div[3]/div/div/div[1]/div/header/div[2]/ul/li[12]/div/button'))).click()
+
+                # align_ = self.driver.find_element_by_xpath(
+                #     '/html/body/div[1]/div/div[3]/div/div/div[1]/div/header/div[2]/ul/li[12]/div/button')
+                # align_.click()
+                time.sleep(0.5)
+                WebDriverWait(self.driver, 10).until(
+                    ec.element_to_be_clickable((By.XPATH,
+                                                '/html/body/div[1]/div/div[3]/div/div/div[1]/div/header/div[2]/ul/li[12]/div/div/button[2]'))).click()
+                time.sleep(1)
 
                 # variable = 'Some really "complex" string \nwith a bunch of stuff in it.'
                 pyperclip.copy(title_)
 
                 actions = ActionChains(self.driver)
                 title = self.driver.find_element_by_xpath(
-                    '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[1]/div[2]/section/article/div[1]/div[1]/div/div/p/span')
+                     '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[1]/div[2]/section/article/div[1]/div[1]/div/div/p/span')
+
                 (actions.move_to_element(title).click()
                  .key_down(Keys.CONTROL)
                  .send_keys('v').pause(1).key_down(Keys.ENTER)
@@ -530,15 +542,25 @@ class NaverWrapper(Post):
                         if published_t:
                             published_t = datetime.fromtimestamp(published_t)
                             # 달력 년월일 테스트
-                            day = str(published_t.day)  # '17'
+                            month = str(published_t.month)
+                            day = str(published_t.day)
                             WebDriverWait(driver, 10).until(ec.element_to_be_clickable((By.XPATH,
                                                                                         '/html/body/div[1]/div/div[1]/div/div[3]/div[3]/div/div/div/div[7]/div/div[2]/div/div[1]/input'))).click()
 
-                            table_ = driver.find_element_by_xpath(
-                                '/html/body/div[1]/div/div[1]/div/div[3]/div[3]/div/div/div/div[7]/div/div[2]/div/div[1]/div[3]/div/div/table')
-                            table_.find_element_by_xpath("//button[text()='{}']".format(day)).click()
+                            # month
+                            m_ = driver.find_element_by_xpath(
+                            '/html/body/div[1]/div/div[1]/div/div[3]/div[3]/div/div/div/div[7]/div/div[2]/div/div[1]/div[3]/div/div/div/span[2]')
+                            print('캘린더 월 text: ', m_.text)
+                            if m_.text != '{}월'.format(int(month)):
+                                # 다음 달로 넘김
+                                driver.find_element_by_xpath(
+                                    '/html/body/div[1]/div/div[1]/div/div[3]/div[3]/div/div/div/div[7]/div/div[2]/div/div[1]/div[3]/div/div/button[2]/span').click()
 
-                            '/html/body/div[1]/div/div[1]/div/div[3]/div[3]/div/div/div/div[7]/div/div[2]/div/div[1]/div[3]/div/div/table/tbody/tr[3]/td[4]/button'
+                            # day
+                            d_table_ = driver.find_element_by_xpath(
+                                '/html/body/div[1]/div/div[1]/div/div[3]/div[3]/div/div/div/div[7]/div/div[2]/div/div[1]/div[3]/div/div/table')
+                            d_table_.find_element_by_xpath("//button[text()='{}']".format(day)).click()
+
                             hour_ = str(published_t.hour + 1)  # '15'
                             (driver.find_element_by_xpath(
                                 '/html/body/div[1]/div/div[1]/div/div[3]/div[3]/div/div/div/div[7]/div/div[2]/div/div[2]/select/option[{}]'.format(
@@ -592,12 +614,12 @@ class NaverWrapper(Post):
                                                 '/html/body/div[6]/div[1]/div[2]/div[2]/div[2]/div[1]/div/div[2]/div[1]/div/div[2]/div[2]/a[1]'))).click()
 
 
-            # 폴더삭제
-            # shutil.rmtree(folder_p)
-            # 뭐 올렸는지 로그 남기자 -> publish_list에 예약리스트 기록중
-            # zip 파일 이동
-            z_name = os.path.basename(zip_p)
-            shutil.move(zip_p, test_repo+r'\{}\{}'.format('done', z_name))
+                # 폴더삭제
+                # shutil.rmtree(folder_p)
+                # 뭐 올렸는지 로그 남기자 -> publish_list에 예약리스트 기록중
+                # zip 파일 이동
+                # z_name = os.path.basename(zip_p)
+                # shutil.move(zip_p, test_repo+r'\{}\{}'.format('done', z_name))
 
         except Exception as e:
             traceback.print_exc()
