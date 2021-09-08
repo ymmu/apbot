@@ -615,159 +615,188 @@ def get_docs_from_gdrive() -> object:
     return article_list
 
 
-def get_notion_article_table():
-    cwd_ = os.path.dirname(os.path.abspath(__file__))
-    with open(cwd_ + '/../config/config.json', 'r') as f:
-        token_v2 = json.load(f)['keys']['notion']['token_v2']
-    client = NotionClient(token_v2=token_v2)
+class Notion_scraper:
 
-    # 글쓰기 페이지임
-    page = client.get_block("https://www.notion.so/ymmu/ad61d409d6fd47adad133fdd81ba67a8")
-    print("The title is:", page.title)
-    page.children  # 이거 안 해주면 밑에 block을 못 가져옴.
-    # for child in page.children:
-    #     print(type(child), child.__dict__)
-    #     print(child.id)
+    def __init__(self):
+        cwd_ = os.path.dirname(os.path.abspath(__file__))
+        with open(cwd_ + '/../config/config.json', 'r') as f:
+            self.configs = json.load(f)['keys']['notion']
+            token_v2 = self.configs['token_v2']
+        self.client = NotionClient(token_v2=token_v2)
+        self.doing_table = self.get_table(kind="doing")
+        self.done_table = self.get_table(kind="done")
 
-    # 글쓰기 페이지에서 글 table
-    cv = client.get_block(
-        "https://www.notion.so/ymmu/49b8df47b05b4ce4aa7aca477e1640ca?v=f20d702158194ba5b21b24e3e231b88f")
+    def get_notion_block(self, block_url):
 
-    return cv
+        # block_url = "https://www.notion.so/ymmu/ad61d409d6fd47adad133fdd81ba67a8"
+        # 글쓰기 페이지임
+        page = self.client.get_block(block_url)
+        # print("The title is:", page.title)
+        page.children  # 이거 안 해주면 밑에 block을 못 가져옴.
+        # for child in page.children:
+        #     print(type(child), child.__dict__)
+        #     print(child.id)
+        # return self.client
 
+    def get_table(self, kind="doing"):
+        block_url = self.configs['writing']
+        self.get_notion_block(block_url=block_url)
+        # 글쓰기 페이지에서 소재 table
+        cv = self.client.get_block(self.configs[kind])
+        return cv
 
-def update_doc_notion(rst: object) -> object:
-    """ 글이 발행되면 publish -> done 변경 , url 넣기
+    def update_doc(self, rst: object) -> object:
+        """ 글이 발행되면 publish -> done 변경 , url 넣기
 
-    :param rst:
-    :return:
-    """
-    # 글쓰기 페이지 > 소재 테이블 가져옴
-    cv = get_notion_article_table()
-    blog_ = list(rst.keys())[0]
-    for search in ["publish", "update"]:
-        for row in cv.collection.get_rows(search=search):
-            if row.blog == blog_ and row.title == rst[blog_]["title"]:
-                if rst[blog_]["status"] == "200":
-                    row.status = "done"
-                    row.post_url = rst[blog_]['url']
-                    log_t = datetime.now().strftime("%Y/%m/%d %H:%M")
-                    if search == "publish":
-                        row.published = log_t
-                    elif search == "update":
-                        row.updated = log_t
-                else:
-                    row.error_msg = rst[blog_]["msg"]
-                    row.status = rst[blog_]["status"] + " error"
+        :param rst:
+        :return:
+        """
+        # 글쓰기 페이지 > 소재 테이블에서 작업
+        blog_ = list(rst.keys())[0]
+        for search in ["publish", "update"]:
+            for row in self.doing_table.collection.get_rows(search=search):
+                if row.blog == blog_ and row.title == rst[blog_]["title"]:
+                    if rst[blog_]["status"] == "200":
+                        row.status = "hold" # 발행하고 수정하는 일이 많아서 check로 바뀌게 함
+                        row.post_url = rst[blog_]['url']
+                        log_t = datetime.now().strftime("%Y/%m/%d %H:%M")
 
-
-def get_docs_from_notion():
-    # 글쓰기 페이지 > 소재 테이블 가져옴
-    cv = get_notion_article_table()
-
-    article_list = []  # 발행할 글들(=publish 처리 된 글들) json 형태로 만들어서 저장
-    search_k = ["publish", "update", "test"]
-    for s_k in search_k:
-        for row in cv.collection.get_rows(search=s_k):
-            # print(row.get_all_properties())
-            # print(row.__dir__())
-            # print(row._str_fields)
-            # print(row.timestamp.start, row.timestamp.end, row.timestamp.timezone)
-            # print(type(row.timestamp.start), row.timestamp.end, type(row.timestamp.timezone))
-            timestamp_ = convert_to_timestamp(row.timestamp)
-            article_info = {
-                "title": row.title,
-                "blog": row.blog,
-                "category": row.category,
-                "timestamp": timestamp_,
-                "tags": [tag.lower() for tag in row.tags],
-                "images": [],
-                "videos": [],
-                "codes": [],
-                "task": row.status,
-                "post_url": "",
-                "repo": "notion",
-                "content": []
-            }
-            if row.status == 'update':
-                article_info["post_url"] = re.search(r"https://[a-z]+.tistory.com/[0-9]{1,7}", row.post_url).group()
-
-            for child in row.children:
-                # print(child.title, child.space_info, child.__dict__, type(child), child.type, child.__dir__())
-                if child.type == 'image':
-                    # article_info['images'].append(child.caption)
-                    article_info['images'].append(download_img(child.source))  # bytes 저장임
-                    article_info["content"].append("\n(img:{})\n".format(len(article_info['images']) - 1))
-
-                elif child.type == 'header':
-                    article_info["content"].append('# __{}__'.format(child.title))
-
-                elif child.type == 'sub_header':
-                    article_info["content"].append('## __{}__'.format(child.title))
-
-                elif child.type == 'sub_sub_header':
-                    article_info["content"].append('### __{}__'.format(child.title))
-
-                elif child.type == 'text':
-                    # print(child.title_plaintext, child.__dir__())
-                    if re.sub(" +", "", child.title) == "": # 그냥 공백
-                        # print('enter')
-                        article_info["content"].append('\n')
-                    elif re.match('\[.*\]\(.*\)', child.title): # 유튜브 주소면
-                        child.title = re.findall('https://[a-zA-Z0-9.]+/[a-zA-Z0-9]+', child.title)[0]
-                        article_info["content"].append('{} \n'.format(child.title))
+                        # 발행, 업데이트 구분해서 날짜 기록
+                        if search == "publish":
+                            row.published = log_t
+                        elif search == "update":
+                            row.updated = log_t
                     else:
-                        article_info["content"].append('{} \n'.format(child.title))
+                        row.error_msg = rst[blog_]["msg"]
+                        row.status = rst[blog_]["status"] + " error"
 
-                elif child.type == 'code':
-                    # article_info["content"].append('```\n {} \n```'.format(child.title))
-                    # print(child.title, child.language)
-                    # print(child.__dir__())
-                    article_info['codes'].append((child.language, child.title))  # (유튜브링크, 임베디드링크)
-                    article_info["content"].append("\n(code:{})\n".format(len(article_info['codes']) - 1))
+    def get_docs(self):
+        """ 소재 테이블에서 done인 글들은 done 테이블로 보내고, publish 글들은 내보내기
 
-                elif child.type == 'bulleted_list' or child.type == 'numbered_list':
-                    def attach_list(parent, list_b, sub_num=0):
-                        list_b += '    '*sub_num +' - {} \n'.format(parent.title)
-                        # print(list_b) 제대로 찍힘
-                        sub_num += 1
-                        for c in parent.children:
-                            list_b = attach_list(c, list_b, sub_num)
-                            # article_info["content"].append(markdown.markdown('\t * {}'.format(c.title)))
-                            # article_info["content"].append('\n')
-                        return list_b
+        :return:
+        """
 
-                    list_b = '\n'
-                    article_info["content"].append(attach_list(child, list_b))
-                # elif child.type == 'numbered_list':  # 블럭에 번호기록 안 함?..답답하구먼.
-                #     article_info["content"].append(' * {}'.format(child.title))
-                #     article_info["content"].append('\n')
-                #     print(child._str_fields(), child.title_plaintext, child._client, type(child), child.type, child.__dir__())
+        # done 글들 이동.. 뭔가 문제가 있는듯
+        done_ = "test"  # "done"
+        print(type(self.doing_table.collection.get_rows()[0]))
+        first_ = self.doing_table.collection.get_rows()[0]
+        print(self.doing_table)
+        for row in self.doing_table.collection.get_rows(search=done_):
+            print(row.__dir__())
+            print()
+            done_d = { slug: row.get_property(slug) for slug in row._get_property_slugs()}
+            # test_ = self.done_table.collection.add_row(**done_d)
+            row.move_to(self.doing_table, "after")  # 다른 인라인 테이블에 안 들어감..-_- 그냥 밖에 빼고 옮겨야겠네
 
-                elif child.type == "quote" or child.type == "callout":
-                    article_info["content"].append(' > {}'.format(child.title))
-                    article_info["content"].append('\n')
+            # for prop in row.schema:
+            #     if 'options' in prop.keys():
+            #         print([op['value'] for op in prop['options']])
+            # print('sdsffffff')
 
-                elif child.type == "divider":
-                    article_info["content"].append('---')
-                    article_info["content"].append('\n')
+        # 글쓰기 페이지 > 소재 테이블 가져옴
+        article_list = []  # 발행할 글들(=publish 처리 된 글들) json 형태로 만들어서 저장
+        search_k = ["publish", "update", "test"]
+        for s_k in search_k:
+            for row in self.doing_table.collection.get_rows(search=s_k):
+                # print(row.get_all_properties())
+                # print(row.__dir__())
+                # print(row._str_fields)
+                # print(row.timestamp.start, row.timestamp.end, row.timestamp.timezone)
+                # print(type(row.timestamp.start), row.timestamp.end, type(row.timestamp.timezone))
+                timestamp_ = convert_to_timestamp(row.timestamp)
+                article_info = {
+                    "title": row.title,
+                    "blog": row.blog,
+                    "category": row.category,
+                    "timestamp": timestamp_,
+                    "tags": [tag.lower() for tag in row.tags],
+                    "images": [],
+                    "videos": [],
+                    "codes": [],
+                    "task": row.status,
+                    "post_url": "",
+                    "repo": "notion",
+                    "content": []
+                }
+                if row.status == 'update':
+                    article_info["post_url"] = re.search(r"https://[a-z]+.tistory.com/[0-9]{1,7}", row.post_url).group()
 
-                elif child.type == 'video':
-                    # print(type(child), child.type, child.__dir__())
-                    # print(child.source)
-                    print('utils_, video : ', child.display_source)
-                    article_info['videos'].append((child.source, child.display_source))  # (유튜브링크, 임베디드링크)
-                    article_info["content"].append("\n(video:{})\n".format(len(article_info['videos']) - 1))
+                for child in row.children:
+                    # print(child.title, child.space_info, child.__dict__, type(child), child.type, child.__dir__())
+                    if child.type == 'image':
+                        # article_info['images'].append(child.caption)
+                        article_info['images'].append(download_img(child.source))  # bytes 저장임
+                        article_info["content"].append("\n(img:{})\n".format(len(article_info['images']) - 1))
 
-                elif child.type == 'bookmark':
-                    article_info["content"].append('{}'.format(child.link))
+                    elif child.type == 'header':
+                        article_info["content"].append('# __{}__'.format(child.title))
 
-                else:
-                    print(child.child_list_key, child.id, type(child), child.type, child.__dir__())
-            # child.title,
-            article_list.append(('notion', article_info))
+                    elif child.type == 'sub_header':
+                        article_info["content"].append('## __{}__'.format(child.title))
 
-    return article_list
+                    elif child.type == 'sub_sub_header':
+                        article_info["content"].append('### __{}__'.format(child.title))
+
+                    elif child.type == 'text':
+                        # print(child.title_plaintext, child.__dir__())
+                        if re.sub(" +", "", child.title) == "": # 그냥 공백
+                            # print('enter')
+                            article_info["content"].append('\n')
+                        elif re.match('\[.*\]\(.*\)', child.title): # 유튜브 주소면
+                            child.title = re.findall('https://[a-zA-Z0-9.]+/[a-zA-Z0-9]+', child.title)[0]
+                            article_info["content"].append('{} \n'.format(child.title))
+                        else:
+                            article_info["content"].append('{} \n'.format(child.title))
+
+                    elif child.type == 'code':
+                        # article_info["content"].append('```\n {} \n```'.format(child.title))
+                        # print(child.title, child.language)
+                        # print(child.__dir__())
+                        article_info['codes'].append((child.language, child.title))  # (유튜브링크, 임베디드링크)
+                        article_info["content"].append("\n(code:{})\n".format(len(article_info['codes']) - 1))
+
+                    elif child.type == 'bulleted_list' or child.type == 'numbered_list':
+                        def attach_list(parent, list_b, sub_num=0):
+                            list_b += '    '*sub_num +' - {} \n'.format(parent.title)
+                            # print(list_b) 제대로 찍힘
+                            sub_num += 1
+                            for c in parent.children:
+                                list_b = attach_list(c, list_b, sub_num)
+                                # article_info["content"].append(markdown.markdown('\t * {}'.format(c.title)))
+                                # article_info["content"].append('\n')
+                            return list_b
+
+                        list_b = '\n'
+                        article_info["content"].append(attach_list(child, list_b))
+                    # elif child.type == 'numbered_list':  # 블럭에 번호기록 안 함?..답답하구먼.
+                    #     article_info["content"].append(' * {}'.format(child.title))
+                    #     article_info["content"].append('\n')
+                    #     print(child._str_fields(), child.title_plaintext, child._client, type(child), child.type, child.__dir__())
+
+                    elif child.type == "quote" or child.type == "callout":
+                        article_info["content"].append(' > {}'.format(child.title))
+                        article_info["content"].append('\n')
+
+                    elif child.type == "divider":
+                        article_info["content"].append('---')
+                        article_info["content"].append('\n')
+
+                    elif child.type == 'video':
+                        # print(type(child), child.type, child.__dir__())
+                        # print(child.source)
+                        print('utils_, video : ', child.display_source)
+                        article_info['videos'].append((child.source, child.display_source))  # (유튜브링크, 임베디드링크)
+                        article_info["content"].append("\n(video:{})\n".format(len(article_info['videos']) - 1))
+
+                    elif child.type == 'bookmark':
+                        article_info["content"].append('{}'.format(child.link))
+
+                    else:
+                        print(child.child_list_key, child.id, type(child), child.type, child.__dir__())
+                # child.title,
+                article_list.append(('notion', article_info))
+
+        return article_list
 
 
 def convert_to_timestamp(time_):
