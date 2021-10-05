@@ -7,6 +7,20 @@ import json
 from pprint import pprint
 
 import docx
+import datetime
+from pathlib import Path
+
+from bson import json_util
+from bson.codec_options import CodecOptions
+from bson.binary import STANDARD
+
+from pymongo import MongoClient
+from pymongo.encryption import (Algorithm,
+                                ClientEncryption)
+from pymongo.encryption_options import AutoEncryptionOpts
+from pymongo.write_concern import WriteConcern
+
+from sources import utils_
 
 
 class Post(metaclass=ABCMeta):
@@ -19,8 +33,34 @@ class Post(metaclass=ABCMeta):
         with open(os.path.join(self.dir_path, './templates', '{}_.json'.format(self.blog_)), 'r') as f:
             return json.load(f)
 
-    def get_keys(self):
-        with open(os.path.join(self.dir_path, '../config', 'config.json'), 'r') as f:
+    def get_keys(self, db_pass):
+        # dir_path = os.path.dirname(os.path.abspath(__file__))
+        # password = input('mongoDB db_name: ')
+        # MDB_URL = f"mongodb+srv://ymmu:{password}@blogdistribution.lyfew.mongodb.net"
+        # key_vault_namespace = "bd_config.__keystore"
+        #
+        # # Load the master key from 'key_bytes.bin':
+        # key_bin = Path(os.path.join(dir_path, "../config/key_bytes.bin")).read_bytes()
+        # kms_providers = {"local": {"key": key_bin}}
+        #
+        # csfle_opts = AutoEncryptionOpts(
+        #     kms_providers=kms_providers,
+        #     key_vault_namespace=key_vault_namespace
+        # )
+        #
+        # # auto_encryption_opts=csfle_opts 이게 없으면 find_one할 때 암호화된 상태로 보여줌
+        # with MongoClient(MDB_URL, auto_encryption_opts=csfle_opts) as client:
+        #     db_namespace = 'bd_config.keys'
+        #     db_name, coll_name = db_namespace.split(".", 1)
+        #
+        #     coll = client[db_name][coll_name]
+        #     config_ = coll.find_one()
+        #     # pprint(config_)
+        config_ = utils_.get_config(password=db_pass)
+        return config_['keys'][self.blog_]
+
+    def get_keys_old(self):
+        with open(os.path.join(self.dir_path, '../config', 'config.json'), 'r', encoding='utf-8') as f:
             return json.load(f)['keys'][self.blog_]
 
     def get_repo(self):

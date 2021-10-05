@@ -2,6 +2,7 @@ import base64
 import glob
 import hashlib
 import io
+import re
 import traceback
 from binascii import hexlify, unhexlify
 from copy import copy
@@ -41,11 +42,11 @@ class SteemWrapper(Post):
     KST = pytz.timezone('Asia/Seoul')
     call_count = 0
 
-    def __init__(self, account):
+    def __init__(self, account, db_pass):
 
         self.blog_ = 'steem'
         self.account = account
-        self.key_ = self.get_keys()
+        self.key_ = self.get_keys(db_pass)
         self.form = self.get_data_form()
         self.repo = self.get_repo()
         self.s = Steem(nodes=['https://api.steemit.com'], keys=[self.key_['private_posting_key']])
@@ -56,8 +57,8 @@ class SteemWrapper(Post):
     def get_data_form(self):
         return super().get_data_form()
 
-    def get_keys(self):
-        return super(SteemWrapper, self).get_keys()
+    def get_keys(self, db_pass):
+        return super(SteemWrapper, self).get_keys(db_pass)
 
     def get_repo(self):
         return super().get_repo()
@@ -97,6 +98,20 @@ class SteemWrapper(Post):
             content.replace("(video:{})".format(idx), source)
         return content
 
+    def transfer_fee(self, data):
+        if data['tags'].split(' ')[0] == 'hive-101145':
+            # 스코판이면 수수료 보내는 작업
+            stm = beem_steem(wif=self.key_['private_active_key'])
+            # print(stm.get_steem_per_mvest())
+            # pprint(stm.__dict__)
+
+            wallet = Wallet(self.account, steem_instance=stm)
+            rst_2 = wallet.transfer("sct.postingfee", 1, "SCT", memo=f"@{self.account}/{data['permlink']}")
+            print('postingfee response: ')
+            pprint(rst_2)
+        else:
+            print('It\'s not the post from steemcoinpan. ')
+
     def create_post(self, data):
         rst, rst_2 = None, None
         try:
@@ -105,16 +120,7 @@ class SteemWrapper(Post):
             pprint(rst)
             c = input('enter: ')
 
-            if data['tags'].split(' ')[0] == 'hive-101145':
-                # 스코판이면 수수료 보내는 작업
-                stm = beem_steem(wif=self.key_['private_active_key'])
-                # print(stm.get_steem_per_mvest())
-                # pprint(stm.__dict__)
-
-                wallet = Wallet(self.account, steem_instance=stm)
-                rst_2 = wallet.transfer("sct.postingfee", 1, "SCT", memo=f"@{self.account}/{data['permlink']}")
-                print('postingfee response: ')
-                pprint(rst_2)
+            self.transfer_fee(data)
 
             print("Post created successfully")
 
@@ -190,6 +196,10 @@ class SteemWrapper(Post):
 
             # 태그 붙이기
             tags = ' '.join(doc['tags'])
+
+            # <space> 바꾸기
+            for idx, t in enumerate(doc["content"]):
+                doc["content"][idx] = re.sub("<space>", '\n', t)
 
             print(body)
             form.update({
@@ -343,19 +353,22 @@ class SteemWrapper(Post):
 
 if __name__ == '__main__':
     # print(utils_.get_timestamp())
-
-    sw = SteemWrapper('ymmu')
+    db_pass = input('mongoDB pw: ')
+    sw = SteemWrapper('ymmu', db_pass)
     # Test get my post
-    posts = sw.get_posts(nums=8)
+    # posts = sw.get_posts(nums=8)
 
     # Test patch data
-    post = posts[-1]
+    # post = posts[-1]
     # pprint(post)
 
     # 1.
-    patch_ = sw.wrap_data("./../data/test.txt", type='update')
-    print('patch: \n')
-    pprint(patch_)
+    # patch_ = sw.wrap_data("./../data/test.txt", type='update')
+    # print('patch: \n')
+    # pprint(patch_)
+
+    data= {'permlink': ''}#, 'tags': 'hive-101145'}
+    sw.transfer_fee(data)
 
     # sw.update_post(patch_, post)
 

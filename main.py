@@ -16,7 +16,7 @@ def update_repo(rst, repo):
     # print(repo)
 
     if repo == 'notion':
-        utils_.update_doc_notion(rst)
+        n_scraper.update_doc(rst)
     elif repo == 'g_docs':
         # 발행한 글 관련 폴더로 이동시킴
         pass
@@ -40,6 +40,7 @@ def perform(doc_: object):
             if task == 'publish': # 노션만 되어있음
                 print("publish")
                 rst = ts.create_post(doc)
+                utils_.request_indexing(rst[blog_]["url"])
                 rst[blog_].update({"title": doc["title"]})
                 update_repo(rst, repo)
 
@@ -69,9 +70,9 @@ def perform(doc_: object):
         print('{} wrap data : '.format(doc["blog"]))
         try:
             # pass
-            pprint(sw.wrap_data(doc))
-            # if task == 'publish': # 노션만 되어있음
-            #     rst = sw.create_post(doc)
+            # pprint(sw.wrap_data(doc))
+            if task == 'publish':
+                rst = sw.create_post(doc)
             # elif task == 'update': # 노션만 되어있음
             #     rst = sw.update_post(doc)
 
@@ -105,9 +106,10 @@ def perform(doc_: object):
 
 if __name__ == '__main__':
 
-    # ts = TistoryWrapper("myohyun")
-    # nw = NaverWrapper("myohyun")
-    sw = SteemWrapper('ymmu')
+    db_pass = input('mongoDB db_name: ')
+    ts = TistoryWrapper("myohyun", db_pass)
+    # nw = NaverWrapper("myohyun", db_pass)
+    sw = SteemWrapper('ymmu', db_pass)
 
     while True:
         # get doc list form google drive and notion
@@ -117,7 +119,7 @@ if __name__ == '__main__':
         doc_list = n_scraper.get_docs()
         for doc in doc_list:
             # pprint(doc)
-            # perform(doc)
+            perform(doc)
             pass
         break
         #time.sleep(60*10) # every 10 mins

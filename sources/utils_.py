@@ -3,6 +3,7 @@ import os
 from pprint import pprint
 from urllib.parse import parse_qs, urlparse
 
+import certifi
 import markdown
 import notion
 import pytz
@@ -322,7 +323,7 @@ class Session:
         if not sess_last_start:
             sess_last_start = self.start_t
         t_diff = now_timestamp(str_=False) - sess_last_start
-        print('{} mins went after authorization. '.format(t_diff.total_seconds()/60))  # 분처리로 하세
+        print('{} mins went after authorization. '.format(t_diff.total_seconds() / 60))  # 분처리로 하세
         if t_diff.total_seconds() / 60 >= self.t:  # 분 기준임
             return True
         else:
@@ -454,13 +455,13 @@ def update_docs_gdocs():
     folder_id = '0BwwA4oUTeiV1TGRPeTVjaWRDY1E'
     # Retrieve the existing parents to remove
     file = service.files().get(fileId=file_id,
-                                     fields='parents').execute()
+                               fields='parents').execute()
     previous_parents = ",".join(file.get('parents'))
     # Move the file to the new folder
     file = service.files().update(fileId=file_id,
-                                        addParents=folder_id,
-                                        removeParents=previous_parents,
-                                        fields='id, parents').execute()
+                                  addParents=folder_id,
+                                  removeParents=previous_parents,
+                                  fields='id, parents').execute()
 
 
 def get_docs_from_gdrive() -> object:
@@ -610,7 +611,7 @@ def get_docs_from_gdrive() -> object:
                                      "images": image_list,
                                      "tags": tags})
 
-        article_list.append(('g_docs',article_info))
+        article_list.append(('g_docs', article_info))
 
     return article_list
 
@@ -657,7 +658,7 @@ class Notion_scraper:
             for row in self.doing_table.collection.get_rows(search=search):
                 if row.blog == blog_ and row.title == rst[blog_]["title"]:
                     if rst[blog_]["status"] == "200":
-                        row.status = "hold" # 발행하고 수정하는 일이 많아서 check로 바뀌게 함
+                        row.status = "hold"  # 발행하고 수정하는 일이 많아서 check로 바뀌게 함
                         row.post_url = rst[blog_]['url']
                         log_t = datetime.now().strftime("%Y/%m/%d %H:%M")
 
@@ -677,14 +678,14 @@ class Notion_scraper:
         """
 
         # done 글들 이동.. 뭔가 문제가 있는듯
-        done_ = "test"  # "done"
+        done_ = "hold"  # "done"
         print(type(self.doing_table.collection.get_rows()[0]))
         first_ = self.doing_table.collection.get_rows()[0]
         print(self.doing_table)
         for row in self.doing_table.collection.get_rows(search=done_):
             print(row.__dir__())
             print()
-            done_d = { slug: row.get_property(slug) for slug in row._get_property_slugs()}
+            done_d = {slug: row.get_property(slug) for slug in row._get_property_slugs()}
             # test_ = self.done_table.collection.add_row(**done_d)
             row.move_to(self.doing_table, "after")  # 다른 인라인 테이블에 안 들어감..-_- 그냥 밖에 빼고 옮겨야겠네
 
@@ -739,25 +740,27 @@ class Notion_scraper:
 
                     elif child.type == 'text':
                         # print(child.title_plaintext, child.__dir__())
-                        if re.sub(" +", "", child.title) == "": # 그냥 공백
+                        if re.sub(" +", "", child.title) == "":  # 그냥 공백
                             # print('enter')
-                            article_info["content"].append('\n')
-                        elif re.match('\[.*\]\(.*\)', child.title): # 유튜브 주소면
+                            article_info["content"].append('<space>')
+                        elif re.match('\[.*\]\(.*\)', child.title):  # 유튜브 주소면
                             child.title = re.findall('https://[a-zA-Z0-9.]+/[a-zA-Z0-9]+', child.title)[0]
-                            article_info["content"].append('{} \n'.format(child.title))
+                            article_info["content"].append('{}'.format(child.title))
+                            article_info["content"].append('\n'.format(child.title))
                         else:
-                            article_info["content"].append('{} \n'.format(child.title))
+                            article_info["content"].append('{}'.format(child.title))
 
                     elif child.type == 'code':
                         # article_info["content"].append('```\n {} \n```'.format(child.title))
                         # print(child.title, child.language)
                         # print(child.__dir__())
                         article_info['codes'].append((child.language, child.title))  # (유튜브링크, 임베디드링크)
-                        article_info["content"].append("\n(code:{})\n".format(len(article_info['codes']) - 1))
+                        article_info["content"].append("(code:{})".format(len(article_info['codes']) - 1))
 
                     elif child.type == 'bulleted_list' or child.type == 'numbered_list':
                         def attach_list(parent, list_b, sub_num=0):
-                            list_b += '    '*sub_num +' - {} \n'.format(parent.title)
+                            print(parent.title)
+                            list_b += '    ' * sub_num + ' * {} \n'.format(parent.title)
                             # print(list_b) 제대로 찍힘
                             sub_num += 1
                             for c in parent.children:
@@ -779,7 +782,7 @@ class Notion_scraper:
 
                     elif child.type == "divider":
                         article_info["content"].append('---')
-                        article_info["content"].append('\n')
+                        # article_info["content"].append('\n')
 
                     elif child.type == 'video':
                         # print(type(child), child.type, child.__dir__())
@@ -857,3 +860,71 @@ def download_img(img_url: str) -> bytes:
     except Exception as e:
         print('image url download error: {}', img_url)
         return None
+
+
+def request_indexing(url):
+    from oauth2client.service_account import ServiceAccountCredentials
+    import httplib2
+    cwd_ = os.path.dirname(os.path.abspath(__file__))
+    SCOPES = ["https://www.googleapis.com/auth/indexing"]
+    # service_account_file.json is the private key that you created for your service account.
+    JSON_KEY_FILE = os.path.join(cwd_, "../config/ymmu-youtube-analysis-0e3ce1d7eadd.json")
+
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(JSON_KEY_FILE, scopes=SCOPES)
+    http = credentials.authorize(httplib2.Http())
+
+    print(url)
+    # 한 개 인덱싱
+    # Define contents here as a JSON string.
+    # This example shows a simple update request.
+    # Other types of requests are described in the next step.
+
+    ENDPOINT = "https://indexing.googleapis.com/v3/urlNotifications:publish"
+    content = """
+        {{
+          \"url\": \"{url}\",
+          \"type\": \"URL_UPDATED\"
+        }}
+        """.format(url=url)
+
+    response, content = http.request(ENDPOINT, method="POST", body=content)
+    if response['status'] != '200':
+        pprint(response)
+    pprint(json.loads(content.decode('utf-8')))
+
+
+def get_config(password):
+    from bson import json_util
+    from bson.codec_options import CodecOptions
+    from bson.binary import STANDARD
+
+    from pymongo import MongoClient
+    from pymongo.encryption import (Algorithm,
+                                    ClientEncryption)
+    from pymongo.encryption_options import AutoEncryptionOpts
+    from pymongo.write_concern import WriteConcern
+    from pathlib import Path
+
+    dir_path = os.path.dirname(os.path.abspath(__file__))
+    MDB_URL = f"mongodb+srv://ymmu:{password}@blogdistribution.lyfew.mongodb.net"
+    key_vault_namespace = "bd_config.__keystore"
+
+    # Load the master key from 'key_bytes.bin':
+    key_bin = Path(os.path.join(dir_path, "../config/key_bytes.bin")).read_bytes()
+    kms_providers = {"local": {"key": key_bin}}
+
+    csfle_opts = AutoEncryptionOpts(
+        kms_providers=kms_providers,
+        key_vault_namespace=key_vault_namespace
+    )
+
+    # config_ = None
+    # auto_encryption_opts=csfle_opts 이게 없으면 find_one할 때 암호화된 상태로 보여줌
+    with MongoClient(MDB_URL, auto_encryption_opts=csfle_opts, ssl=True, ssl_cert_reqs='CERT_NONE') as client:
+        db_namespace = 'bd_config.keys'
+        db_name, coll_name = db_namespace.split(".", 1)
+
+        coll = client[db_name][coll_name]
+        config_ = coll.find_one()
+
+    return config_

@@ -20,11 +20,11 @@ import markdown
 
 class TistoryWrapper(Post):
 
-    def __init__(self, account):
+    def __init__(self, account,db_pass):
         super(TistoryWrapper, self).__init__()
         self.blog_ = "tistory"
         self.account = account  # {account}.tistory.com
-        self.key_ = self.get_keys()
+        self.key_ = self.get_keys(db_pass)
         self.form = self.get_data_form()
         self.repo = self.get_repo()
         self.sess_ = Tistory_session(self.form['outh'], self.key_, account, self.blog_)
@@ -32,8 +32,8 @@ class TistoryWrapper(Post):
     def get_data_form(self):
         return super(TistoryWrapper, self).get_data_form()
 
-    def get_keys(self):
-        return super(TistoryWrapper, self).get_keys()
+    def get_keys(self, db_pass):
+        return super(TistoryWrapper, self).get_keys(db_pass)
 
     def get_repo(self):
         return super().get_repo()
@@ -79,7 +79,7 @@ class TistoryWrapper(Post):
 
         # md -> html로 변경
         for idx, t in enumerate(doc["content"]):
-            t = re.sub("\n", '&nbsp;', t)
+            t = re.sub("<space>", '&nbsp;', t)
             doc["content"][idx] = markdown.markdown(t)
 
         doc["content"] = ''.join(doc["content"])
@@ -204,11 +204,11 @@ class TistoryWrapper(Post):
         :return:
         """
         # image name = image order for arrangement.
-        wrap_ = """<pre class="codeblock" data-ke-language="{}"><code>{}\n</code></pre>"""
+        wrap_ = """<pre class="codeblock" data-ke-language="{}"><code>\n{}\n\n</code></pre>"""
         # print(type(img_links[0]))
         for idx, code in enumerate(codes):
             wrap_code = wrap_.format(code[0],code[1])  # image name, image link
-            text = text.replace('(code:{})'.format(idx), wrap_code)
+            text = text.replace('(code:{})'.format(idx), '\n'+wrap_code+'\n')
 
         return text
 
@@ -241,6 +241,9 @@ class TistoryWrapper(Post):
         content = re.sub("<bgcc1>", '<span style="background-color: #dddddd; color: #ee2323;">', content)
         content = re.sub("</bgcc1>", '</span>', content)
 
+        content = re.sub("<hr />", '<hr contenteditable="false" data-ke-type="horizontalRule" data-ke-style="style6" />', content)
+        #
+
         return content
 
     def attach_ad(self, content: str) -> str:
@@ -258,9 +261,9 @@ class TistoryWrapper(Post):
         # ut_ = re.compile("https://www.youtube.com/embed/(.*)\?feature=oembed")
         # ut_.match(content)
         # content = re.sub("https://www.youtube.com/embed/(.*)\?feature=oembed", iframe , content)
-        iframe = '<iframe width="560" height="315" src="{}" title="YouTube video player" frameborder="0" ' \
+        iframe = '<p align="middle"><iframe width="560" height="315" src="{}" title="YouTube video player" frameborder="0" ' \
                  'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; ' \
-                 'picture-in-picture" allowfullscreen></iframe> '
+                 'picture-in-picture" allowfullscreen></iframe></p>'
         for idx, video in enumerate(video_links):
             display_source = video[1]  # 0: 일반 링크, 1: iframe용 임베디드 링크
             ut_ = iframe.format(display_source.split('?')[0])

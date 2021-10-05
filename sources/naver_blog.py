@@ -29,19 +29,19 @@ from pathlib import Path
 
 class NaverWrapper(Post):
 
-    def __init__(self, account):
+    def __init__(self, db_pass):
         super(NaverWrapper, self).__init__()
         self.blog_ = "naver"
-        self.account = account
-        self.key_ = self.get_keys()
+        # self.account = account
+        self.key_ = self.get_keys(db_pass)
         self.repo = self.get_repo()
         self.driver = None  # 실제 발행할 때 만들기. 먼저 드라이버 객체 만들면 창이 뜸
 
     def get_data_form(self):
         return super().get_data_form()
 
-    def get_keys(self):
-        return super().get_keys()
+    def get_keys(self, db_pass):
+        return super().get_keys(db_pass)
 
     def get_repo(self):
         return super().get_repo()
@@ -109,7 +109,7 @@ class NaverWrapper(Post):
     def update_post(self, new_data, data, **kargs):
         pass
 
-    def upload_video(self, videos_path: list):
+    def upload_video(self, title, videos_path: list):
 
         # 동영상 버튼 클릭
         self.driver.find_element_by_xpath(
@@ -134,7 +134,7 @@ class NaverWrapper(Post):
             (self.driver
              .find_element_by_xpath(
                 '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[4]/div[2]/div/div/div[2]/form/div[3]/div[2]/div[2]/fieldset/div[1]/div[2]/input')
-             .send_keys("제품영상")
+             .send_keys(title)
              )
             time.sleep(50)
             (self.driver
@@ -149,7 +149,7 @@ class NaverWrapper(Post):
             # 동영상이 없으면 그냥 나감
             (self.driver
              .find_element_by_xpath(
-                '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[4]/div[2]/div/div/div[2]/form/div[4]/button')
+                '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[4]/div[2]/div/div/div[2]/div[1]/button')
              .click()
              )
 
@@ -172,7 +172,7 @@ class NaverWrapper(Post):
                 if img[0].lower().endswith(('mp4', 'mp3', 'mov')):  # 숫자(보통 이미지)인데 영상일 때가 있음..
                     # 별로임..
                     print('It\'s not an image. The upload_video method will be called.')
-                    self.upload_video(kargs['videos'])
+                    self.upload_video(kargs['title'], kargs['videos'])
                 else:
                     img = img[0]
                     # 사진 버튼 클릭
@@ -195,7 +195,7 @@ class NaverWrapper(Post):
                     # print('dddfdssdfsdfsdfsdf')
 
                     # gui로 다이얼로그 컨트롤
-                    pyautogui.sleep(1)
+                    pyautogui.sleep(2)
                     # pyautogui.write(img) # 한글 적용 안 됨
                     # pyautogui.click()
                     pyautogui.hotkey("ctrl", "v")  # 이건 딴데 클릭하면 망함..
@@ -219,37 +219,38 @@ class NaverWrapper(Post):
                     # autoit.control_set_text("Open", "Edit1", img)
                     # print('in upload images: ', img)
 
-    def get_articles(self):
+    def get_articles(self, account):
         """발행할 글 publish_list에서 체크 -> 해당 zip 압축풀고 가져오기
 
         :param test_repo:
         :return:
         """
-        p_file = os.path.join(self.key_['local_repo'], "publish_list.txt")
+        p_file = os.path.join(self.key_[account]['local_repo'], "publish_list.txt")
         published_list = pd.read_csv(p_file,
                                      sep='\t',
                                      infer_datetime_format=True,
                                      parse_dates=True)
-        p_list = published_list.query('done.isnull() or not update.isnull()')
-        p_date = p_list[['filename', 'p_date', 'update']].values  # list
+        published_list = published_list.query(f"account=='{account}'")
+        p_list = published_list.query('done.isnull() or done==`update`')
+        p_date = p_list[['filename', 'p_date']].values  # list
         print(p_date)
         import zipfile
-        zip_list = glob.glob(os.path.join(test_repo, "*.zip"))
+        zip_list = glob.glob(os.path.join(self.key_[account]['local_repo'], "*.zip"))
 
         def is_same(name):
-            name_ = os.path.basename(name).split(".")[0]  # 확장자 뺀 파일 이름만
-            rst = None  # (name, name_, None)
-            # print(name, name_)
+            filename = os.path.basename(name).split(".")[0]  # 확장자 뺀 파일 이름만
+            rst = None  # (name, filename, None)
+            # print(name, filename)
             for p in p_date:
-                # print(p[0],name_)
-                if name_ == p[0]:
+                if filename == p[0]:
                     print('here')
-                    rst = (name, name_, p[1])
+                    rst = (name, filename, p[1])
                     break
+                    # print(p[0],filename)
             # print(rst)
             return rst
 
-        # [(name, name_, None), ...]
+        # [(name, filename, None), ...]
         return published_list, list(set(map(is_same, zip_list)) - set([None]))
 
     def record_article(self, publish_list, zip_name):
@@ -258,7 +259,7 @@ class NaverWrapper(Post):
         :param zip_name: 파일 이름
         :return: None
         """
-        p_file = os.path.join(self.key_['local_repo'], "publish_list.txt")
+        p_file = os.path.join(self.key_[account]['local_repo'], "publish_list.txt")
         p_list = publish_list.query('filename == "{}"'.format(zip_name))
         p_list.__setitem__('done', 'ok')
 
@@ -267,14 +268,14 @@ class NaverWrapper(Post):
         print(publish_list)
         publish_list.to_csv(p_file, sep='\t', index=False, encoding='utf-8')
 
-    def smarteditor_one(self):
+    def smarteditor_one(self, account):
 
         # 발행할 글리스트 가져옴. 실행할 때마다
-        published_list, result = self.get_articles()
+        published_list, result = self.get_articles(account)
 
         self.driver = webdriver.Chrome('../chromedriver.exe')
-        uid = self.account
-        upw = self.key_['secret_key']
+        uid = account  # self.account
+        upw = self.key_[account]['secret_key']
 
         # login : 코드는 너무 길어서 분리하고 싶고,
         # 그렇다고 클래스 매서드로는 두기 싫고 해서 이렇게 했는데..
@@ -325,10 +326,11 @@ class NaverWrapper(Post):
 
             try:
                 # 브라우저 등록
-                driver.find_element_by_link_text('등록안함').click()
-                time.sleep(1)
+                # driver.find_element_by_link_text('등록안함').click()
+                time.sleep(10)
             except Exception as e:
-                raise Exception('브라우저 등록시 문제')
+                pass
+                # raise Exception('브라우저 등록시 문제')
 
         login_(self.driver, uid, upw)
 
@@ -378,8 +380,8 @@ class NaverWrapper(Post):
 
             for zip_info in result:
                 print(zip_info)
-                zip_p, name_, published = zip_info
-                print(zip_p, name_, published)
+                zip_p, filename, published = zip_info
+                print(zip_p, filename, published)
                 zip_ = zipfile.ZipFile(zip_p)
                 folder_p = zip_p.split(".zip")[0]
 
@@ -391,6 +393,8 @@ class NaverWrapper(Post):
                 zip_.extractall(folder_p)
 
                 title_, paragraphs, images_, videos_ = self.wrap_data(folder_p)
+
+                # ---------------
 
                 # # 템플릿 불러오기
                 # def choose_template(driver):
@@ -420,16 +424,43 @@ class NaverWrapper(Post):
                                                 '/html/body/div[1]/div/div[3]/div/div/div[1]/div/header/div[2]/ul/li[12]/div/div/button[2]'))).click()
                 time.sleep(1)
 
+                # 업데이트 글일 경우, 그 포스팅 주소로 들어감 -> 수정하기
+                u_list = published_list.query('not update.isnull()')
+                u_items = [u_item[1] for u_item in u_list[['filename', 'update']].values if u_item[0] == filename]
+                print('업데이트 url: ', u_items)
+                if len(u_items) > 0:
+                    update_url = u_items.pop(0)
+                    self.driver.get(update_url)
+                    self.driver.switch_to.frame('mainFrame')
+                    # 수정버튼 누르기
+                    WebDriverWait(self.driver, 5).until(
+                        ec.element_to_be_clickable((By.XPATH,
+                                                    '/html/body/div[6]/div[1]/div[2]/div[2]/div[2]/div[2]/div/div/div[10]/div[1]/div/table[2]/tbody/tr/td[2]/div[1]/div/div[1]/div/div/div[4]/div'))).click()
+                    WebDriverWait(self.driver, 5).until(
+                        ec.element_to_be_clickable((By.XPATH,
+                                                    '/html/body/div[6]/div[1]/div[2]/div[2]/div[2]/div[2]/div/div/div[10]/div[1]/div/table[2]/tbody/tr/td[2]/div[1]/div/div[1]/div/div/div[4]/div/div/a[1]'))).click()
+                    time.sleep(3)
+                    self.driver.switch_to.frame('mainFrame')
+
+
                 # variable = 'Some really "complex" string \nwith a bunch of stuff in it.'
                 pyperclip.copy(title_)
 
+
+                # 있던 내용 삭제 (update 일때 필요해서 붙임)
                 actions = ActionChains(self.driver)
                 title = self.driver.find_element_by_xpath(
                     '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[1]/div[2]/section/article/div[1]/div[1]/div/div/p/span')
-
+                context_ = self.driver.find_element_by_xpath(
+                    '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[1]/div[2]/section/article/div[2]')
                 (actions.move_to_element(title).click()
                  .key_down(Keys.CONTROL)
+                 .send_keys('a').pause(1).key_up(Keys.CONTROL).send_keys(Keys.BACKSPACE).pause(1)
+                 .key_down(Keys.CONTROL)
                  .send_keys('v').pause(1).key_down(Keys.ENTER)
+                 .move_to_element(context_).click()
+                 .key_down(Keys.CONTROL)
+                 .send_keys('a').send_keys(Keys.BACK_SPACE).pause(1)
                  .perform())
 
                 # 본문 붙여넣기
@@ -441,7 +472,7 @@ class NaverWrapper(Post):
                     print(p, type(p))
                     if str(p) == "동영상":
                         print('here')
-                        self.upload_video(videos_)
+                        self.upload_video(title_, videos_)
                     elif p not in img_nums:  # 이미지 삽입 아니면
                         # if re.compile("[가-힣|a-z|A-Z]+").sub("", p) != p: # 문자가 있으면
                         pyperclip.copy(p)
@@ -468,7 +499,8 @@ class NaverWrapper(Post):
                         print('num:', is_img_p)
                         self.upload_images(nums=is_img_p,
                                            repo=folder_p,
-                                           videos=videos_)  # 동영상이라 표기 안 되어있고 숫자로 표기된 경우.(예외)
+                                           videos=videos_,
+                                           title=title_)  # 동영상이라 표기 안 되어있고 숫자로 표기된 경우.(예외)
                         div_n += (len(is_img_p) + 1)
                     time.sleep(1)
 
@@ -544,7 +576,7 @@ class NaverWrapper(Post):
                     time.sleep(1)
                     # 서로이웃
                     driver.find_element_by_xpath(
-                        '/html/body/div[1]/div/div[1]/div/div[3]/div[3]/div/div/div/div[3]/div/div/ul/li[3]/span/label').click()
+                        '/html/body/div[1]/div/div[1]/div/div[3]/div[3]/div/div/div/div[3]/div/div/ul/li[1]/span/label').click()
 
                     # 댓글 비허용 이미 눌러져있음
                     # self.driver.find_element_by_xpath(
@@ -620,7 +652,7 @@ class NaverWrapper(Post):
                 self.driver.find_element_by_xpath(
                     '/html/body/div[1]/div/div[1]/div/div[3]/div[3]/div/div/div/div[8]/div/button').click()
 
-                self.record_article(publish_list=published_list, zip_name=name_)
+                self.record_article(publish_list=published_list, zip_name=filename)
 
                 time.sleep(5)
                 # 블로그 메인에서 글쓰기 클릭
@@ -652,15 +684,24 @@ class NaverWrapper(Post):
 
 
 if __name__ == '__main__':
-    nw = NaverWrapper("myohyun")
-    test_repo = r'C:\Users\myohy\OneDrive\문서\auto_publish'
+
+    db_pass = input('mongoDB db_name: ')
+    nw = NaverWrapper(db_pass)
+    # test_repo = r'C:\Users\myohy\OneDrive\문서\auto_publish'
     # p_file = os.path.join(test_repo, "publish_list.txt")
     # import pandas as pd
     # published_list = pd.read_csv(p_file,
     #                              sep='\t',
     #                              infer_datetime_format=True,
     #                              parse_dates=True)
+    # # published_list['account'] = 'myohyun'
+    # published_list = published_list[['account', 'filename', 'p_date', 'done', 'update']]
+    # print(published_list)
+    # # published_list.to_csv(p_file, sep='\t', index=False, encoding='utf-8')
+
     # # print(published_list.tail())
+    # print(published_list.query("account=='myohyun'"))
+
     # p_list = published_list.query('done.isnull()')
     # print(p_list)
     # # p_list = published_list.query('filename == "{}"'.format('테스트'))
@@ -671,7 +712,10 @@ if __name__ == '__main__':
     # print(published_list)
     # published_list.to_csv(p_file, sep='\t', index=False, encoding='utf-8')
 
-    nw.smarteditor_one(test_repo=test_repo)
+    for account in ['myohyun']:  # 'lucca_ymmu'
+        nw.smarteditor_one(account=account)
+
+
     # nw.smarteditor_one(test_repo=test_repo, published="21/08/24 06:00")
     # nw.smarteditor_one(test_repo=test_repo)C:\Users\myohy\OneDrive\문서\auto_publish\0819 청담점_청담피부관리\1.JPG
 
