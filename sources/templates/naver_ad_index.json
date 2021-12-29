@@ -1,0 +1,37 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas" : 0
+  },
+  "mappings": {
+    "properties": {
+      "title": { "type": "text" },
+      "content": { "type": "text" },
+      "postdate": { "type": "date" },
+      "change": {
+        "properties": {
+          "type_": { "type": "keyword" },
+          "timestamp": { "type": "date" }
+        }
+      },
+      "images": {
+        "properties": {
+          "image":{ "type": "binary" }
+        }
+      },
+      "image_links": {"type": "text" },
+      "num_images":{ "type": "integer" },
+      "num_videos": { "type": "integer" },
+      "external_links": {"type": "text"},
+      "links": { "type": "float" },
+      "description": { "type": "text" },
+      "keyword": { "type": "keyword" },
+      "sort": { "type": "keyword" },
+      "file_name": { "type": "text" },
+      "characters": { "type": "integer" },
+      "bloggername": { "type": "text" },
+      "bloggerlink": { "type": "text" },
+      "num_maps": { "type": "integer" }
+    }
+  }
+}

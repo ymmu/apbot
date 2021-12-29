@@ -350,11 +350,18 @@ class SteemWrapper(Post):
     def get_post(self, post_id):
         pass
 
+    def monitor_voting_power(self, account):
+
+        res = self.s.steemd.get_account(account=account)
+
+
 
 if __name__ == '__main__':
     # print(utils_.get_timestamp())
     db_pass = input('mongoDB pw: ')
     sw = SteemWrapper('ymmu', db_pass)
+
+    pprint(sw.s.steemd.get_account('nutbox.mine'))
     # Test get my post
     # posts = sw.get_posts(nums=8)
 
@@ -367,8 +374,9 @@ if __name__ == '__main__':
     # print('patch: \n')
     # pprint(patch_)
 
-    data= {'permlink': ''}#, 'tags': 'hive-101145'}
-    sw.transfer_fee(data)
+    # 스코판 글수수료 지불 ---
+    # data= {'permlink': ''}#, 'tags': 'hive-101145'}
+    # sw.transfer_fee(data)
 
     # sw.update_post(patch_, post)
 

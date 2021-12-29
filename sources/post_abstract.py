@@ -1,25 +1,13 @@
 import glob
 import re
 import shutil
+import traceback
 from abc import *
 import os
 import json
 from pprint import pprint
 
 import docx
-import datetime
-from pathlib import Path
-
-from bson import json_util
-from bson.codec_options import CodecOptions
-from bson.binary import STANDARD
-
-from pymongo import MongoClient
-from pymongo.encryption import (Algorithm,
-                                ClientEncryption)
-from pymongo.encryption_options import AutoEncryptionOpts
-from pymongo.write_concern import WriteConcern
-
 from sources import utils_
 
 
@@ -136,22 +124,28 @@ class Post(metaclass=ABCMeta):
                     # print(d)
                     img_name = os.path.basename(d).split('.')
                     img_n = ''.join(img_name[:-1])
-                    num_ = re.compile('[0-9]+').findall(img_n)[-1] # 마지막숫자로
+                    try:
+                        num_ = re.compile('[0-9]+').findall(img_n)[-1] # 마지막숫자로
+                    except Exception as e:
+                        traceback.print_exc()
+                        print(f'Exception when changing image name (Maybe no numbers in the name?): {img_name}')
+                        num_ = img_name[0]
+
                     d_foramt_ = img_name[-1]
 
                     # print(d_foramt_)
                     new_ = num_ + "." + d_foramt_
+                    new_d = os.path.join(local_repo, new_)
+                    # print(new_d)
                     if img_n != new_:
                         # 이미지 이름 숫자로 바꿈.
                         # 이미지는 글에 순서대로 넣어줘야 하기 때문에 번호가 붙어있음 (그러나 숫자만 들어가 있지 않을 때가 있음.)
                         # 폴더 안에서 이미지는 순서대로 나열되어 있음.
-                        new_d = os.path.join(local_repo, new_)
-                        # print(new_d)
-                        os.rename(d, new_d) # 이미지 이름 1부터 시작하게
+                        os.rename(d, new_d)  # 이미지 이름 1부터 시작하게
                     with open(new_d, 'rb') as f:
                         data = f.read()
                     images_.append((num_, data)) # (이미지 번호, 이미지 bytes 데이터) 새 이미지 이름 넣어줌
-                else: # 동영상
+                else:  # 동영상
                     videos_.append(d)
 
             if len(text_) > 1:

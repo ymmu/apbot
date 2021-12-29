@@ -7,3 +7,8 @@ sources/tmp_sess.json
 sources/token.json
 글 자동배포봇.html
 sources/templates/categories.json
+notion-py
+dist
+build
+mongocryptd.pid
+src

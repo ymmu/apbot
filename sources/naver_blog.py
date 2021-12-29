@@ -70,7 +70,7 @@ class NaverWrapper(Post):
             # 이미지
             # if (re.sub("[가-힣a-zA-Z*\"\'~#@&\^\(\)\-_ ]+", "", line) == line and line != '\n')
             # or len((re.findall("[ *사진* *]*[0-9]{1,2}", line))) > 0:
-            if re.match("( *(사진)* *[0-9]{1,2}[ ,./]*){1,3}\n", line):
+            if re.match("( *(대표)* *(사진)* *[\[\(]*[0-9]{1,2}[\)\] ,./]*){1,3}\n", line):
                 img_num_sep = re.compile("[0-9]{1,2}").findall(line.replace("\n", ""))
                 # paragraphs.extend([tmp, line]) # 이미지 표시 그대로 넣는건데 막음
                 paragraphs.extend([tmp + '\n\n'])  # 그 대신 띄어쓰기로
@@ -231,7 +231,8 @@ class NaverWrapper(Post):
                                      infer_datetime_format=True,
                                      parse_dates=True)
         published_list = published_list.query(f"account=='{account}'")
-        p_list = published_list.query('done.isnull() or done==`update`')
+        #print(published_list.tail())
+        p_list = published_list.query("done.isnull() or done=='update'")
         p_date = p_list[['filename', 'p_date']].values  # list
         print(p_date)
         import zipfile
@@ -273,7 +274,7 @@ class NaverWrapper(Post):
         # 발행할 글리스트 가져옴. 실행할 때마다
         published_list, result = self.get_articles(account)
 
-        self.driver = webdriver.Chrome('../chromedriver.exe')
+        self.driver = webdriver.Chrome('../chromedriver_.exe')
         uid = account  # self.account
         upw = self.key_[account]['secret_key']
 
@@ -449,11 +450,18 @@ class NaverWrapper(Post):
 
                 # 있던 내용 삭제 (update 일때 필요해서 붙임)
                 actions = ActionChains(self.driver)
+                try:
+                    title = WebDriverWait(self.driver, 10).until(
+                        ec.presence_of_element_located((By.XPATH,
+                                                    '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[1]/div[2]/section/article/div[1]/div[1]/div/div/p/span'))).click()
+                except Exception as e:
+                    pass
+
                 title = self.driver.find_element_by_xpath(
-                    '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[1]/div[2]/section/article/div[1]/div[1]/div/div/p/span')
+                     '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[1]/div[2]/section/article/div[1]/div[1]/div/div/p/span')
                 context_ = self.driver.find_element_by_xpath(
                     '/html/body/div[1]/div/div[3]/div/div/div[1]/div/div[1]/div[2]/section/article/div[2]')
-                (actions.move_to_element(title).click()
+                (actions.pause(2).move_to_element(title).click()  #
                  .key_down(Keys.CONTROL)
                  .send_keys('a').pause(1).key_up(Keys.CONTROL).send_keys(Keys.BACKSPACE).pause(1)
                  .key_down(Keys.CONTROL)
@@ -464,7 +472,7 @@ class NaverWrapper(Post):
                  .perform())
 
                 # 본문 붙여넣기
-                img_nums = [str(num) for num in range(25)]
+                img_nums = [str(num) for num in range(100)]
 
                 # 글 붙이기 : 방법 1
                 div_n = 2
@@ -494,7 +502,8 @@ class NaverWrapper(Post):
                          .perform())
 
                     else:  # 이미지 삽입이면
-                        is_img_p = re.compile("[0-9]{1,2}").findall(p.replace("\n", ""))
+                        is_img_p = re.compile("[0-9]{1,2}").findall(p.replace("\n", "")) # (\(* *대표 *\)*)*
+                        # is_img_p = re.search("[0-9]{1,2}", is_img_p).group()
                         print(is_img_p)
                         print('num:', is_img_p)
                         self.upload_images(nums=is_img_p,
@@ -503,6 +512,9 @@ class NaverWrapper(Post):
                                            title=title_)  # 동영상이라 표기 안 되어있고 숫자로 표기된 경우.(예외)
                         div_n += (len(is_img_p) + 1)
                     time.sleep(1)
+
+                    # /html/body/div[1]/div/div[3]/div/div/div[1]/div/div[1]/aside/div/div[2]/div/div/ul/li[1]/div
+                    # /html/body/div[1]/div/div[3]/div/div/div[1]/div/div[1]/aside/div/div[2]/div/div/ul/li[2]/div
 
                 # 방법 2
                 # p = '\n'.join(paragraphs)
@@ -555,7 +567,13 @@ class NaverWrapper(Post):
                     # 발행설정 ----
 
                     # 발행버튼
-                    driver.find_element_by_xpath('/html/body/div[1]/div/div[1]/div/div[3]/div[3]/button/span').click()
+                    try:
+                        # create 시
+                        driver.find_element_by_xpath('/html/body/div[1]/div/div[1]/div/div[3]/div[3]/button/span').click()
+                    except Exception as e:
+                        # update 시
+                        driver.find_element_by_xpath(
+                            '/html/body/div[1]/div/div[1]/div/div[1]/div[3]/button/span').click()
 
                     # 카테고리
                     driver.find_element_by_xpath(

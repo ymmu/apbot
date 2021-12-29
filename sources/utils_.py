@@ -1,5 +1,7 @@
 import json
 import os
+import random
+import string
 from pprint import pprint
 from urllib.parse import parse_qs, urlparse
 
@@ -679,8 +681,8 @@ class Notion_scraper:
 
         # done 글들 이동.. 뭔가 문제가 있는듯
         done_ = "hold"  # "done"
-        print(type(self.doing_table.collection.get_rows()[0]))
-        first_ = self.doing_table.collection.get_rows()[0]
+        # print(type(self.doing_table.collection.get_rows()[0]))
+        # first_ = self.doing_table.collection.get_rows()[0]
         print(self.doing_table)
         for row in self.doing_table.collection.get_rows(search=done_):
             print(row.__dir__())
@@ -928,3 +930,14 @@ def get_config(password):
         config_ = coll.find_one()
 
     return config_
+
+
+def post_message(token, channel, text):
+    res = requests.post("https://slack.com/api/chat.postMessage",
+                             headers={"Authorization": "Bearer " + token},
+                             data={"channel": channel, "text": text})
+
+    if res.status_code == 200:
+        print('The message was sent successfully.')
+    else:
+        print(res)
