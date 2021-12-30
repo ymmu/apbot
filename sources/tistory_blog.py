@@ -17,7 +17,6 @@ from time import sleep
 from sources import utils_, post_abstract
 import markdown
 
-
 class TistoryWrapper(Post):
 
     def __init__(self, account,db_pass):
@@ -410,8 +409,13 @@ class TistoryWrapper(Post):
             cate = json.load(f)['tistory']
 
         lower_k = [k.lower() for k in cate.keys()]
-        search = search.lower()
         default_ = 'jungle_life'
+
+        if not search:
+            print('category값 없음.')
+            return (default_, cate[default_])
+
+        search = search.lower()
 
         for k, v in cate.items():
             if search == k or search == v:

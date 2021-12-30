@@ -12,3 +12,4 @@ dist
 build
 mongocryptd.pid
 src
+sources/test.log

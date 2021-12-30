@@ -4,10 +4,18 @@ import time
 import traceback
 from pprint import pprint
 
-from sources import utils_
+from sources import utils_, log_decorator
 # from sources.never_blog import NaverWrapper
 from sources.steem_blog import SteemWrapper
 from sources.tistory_blog import TistoryWrapper
+import logging.config
+import yaml
+
+with open('./config/log_config.yml') as f:
+    log_config = yaml.load(f, Loader=yaml.FullLoader)
+
+logging.config.dictConfig(log_config)
+logger = logging.getLogger(name='main')
 
 
 def update_repo(rst, repo):
@@ -22,8 +30,8 @@ def update_repo(rst, repo):
         pass
 
 
+@log_decorator.Log_()
 def perform(doc_: object):
-
     repo, doc = doc_[0], doc_[1]
     blog_ = doc['blog']
     task = doc['task']
@@ -37,14 +45,14 @@ def perform(doc_: object):
             if task == 'test':
                 pprint(ts.wrap_data(doc))
 
-            if task == 'publish': # 노션만 되어있음
+            if task == 'publish':  # 노션만 되어있음
                 print("publish")
                 rst = ts.create_post(doc)
                 utils_.request_indexing(rst[blog_]["url"])
                 rst[blog_].update({"title": doc["title"]})
                 update_repo(rst, repo)
 
-            elif task == 'update': # 노션만 되어있음
+            elif task == 'update':  # 노션만 되어있음
                 print("update")
                 doc = ts.wrap_data(doc)
                 rst = ts.update_post(doc)
@@ -122,4 +130,4 @@ if __name__ == '__main__':
             perform(doc)
             pass
         break
-        #time.sleep(60*10) # every 10 mins
+        # time.sleep(60*10) # every 10 mins

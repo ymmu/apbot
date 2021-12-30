@@ -2,6 +2,7 @@ import json
 import os
 import random
 import string
+import traceback
 from pprint import pprint
 from urllib.parse import parse_qs, urlparse
 
@@ -29,7 +30,6 @@ import os.path
 import re
 import json
 from pprint import pprint
-
 from notion.client import NotionClient
 
 from googleapiclient.discovery import build

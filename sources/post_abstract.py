@@ -220,4 +220,3 @@ class Post(metaclass=ABCMeta):
     @abstractmethod
     def upload_images(self, images, **kargs):
         pass
-
