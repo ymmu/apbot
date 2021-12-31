@@ -1,18 +1,22 @@
 !config
 config/*
 !config/log_config.yml
+
 __pycache__
 .idea
 data/*
 samples
-sources/tmp_sess.json
-sources/token.json
-글 자동배포봇.html
-sources/templates/categories.json
 notion-py
 dist
 build
-mongocryptd.pid
 src
-sources/test.log
 logs
+
+sources/tmp_sess.json
+sources/token.json
+sources/templates/categories.json
+sources/test.log
+글 자동배포봇.html
+
+mongocryptd.pid
+
