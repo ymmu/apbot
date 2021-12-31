@@ -71,8 +71,9 @@ def perform(doc_: object):
                             '''
 
         except Exception as e:
-            print('error ts.create_post in main')
-            traceback.print_exc()
+            # print('error ts.create_post in main')
+            # traceback.print_exc()
+            raise Exception('error ts.create_post in main', traceback.format_exc()) from e
 
     elif blog_ == 'steemit':
         print('{} wrap data : '.format(doc["blog"]))

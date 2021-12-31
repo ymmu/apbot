@@ -411,9 +411,9 @@ class TistoryWrapper(Post):
         lower_k = [k.lower() for k in cate.keys()]
         default_ = 'jungle_life'
 
-        if not search:
-            print('category값 없음.')
-            return (default_, cate[default_])
+        # if not search:
+        #     print('category값 없음.')
+        #     return (default_, cate[default_])
 
         search = search.lower()
 

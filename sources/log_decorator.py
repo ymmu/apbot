@@ -37,7 +37,7 @@ class Log_:
 
             except Exception as e:
                 # print(e)
-                print(traceback.format_exc())
+                # print(traceback.format_exc())
                 msg.update({
                     'status': 'error',
                     'tracback': traceback.format_exc()
