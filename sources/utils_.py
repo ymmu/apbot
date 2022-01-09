@@ -325,7 +325,7 @@ class Session:
         if not sess_last_start:
             sess_last_start = self.start_t
         t_diff = now_timestamp(str_=False) - sess_last_start
-        print('{} mins went after authorization. '.format(t_diff.total_seconds() / 60))  # 분처리로 하세
+        print('About {} mins went after authorization. '.format(t_diff.total_seconds() // 60))  # 분처리로 하세
         if t_diff.total_seconds() / 60 >= self.t:  # 분 기준임
             return True
         else:
@@ -364,7 +364,7 @@ class Session:
             # chrome.find_element_by_xpath('// *[ @ id = "contents"] / div[4] / button[1]').click()
             # chrome.implicitly_wait(2)
             # print(chrome.current_url)
-            res_url = input()
+            res_url = input('Copy & paste \'url with code param\' here : ')
             code = parse_qs(urlparse(res_url).query)['code']
             forms = self.form["token_params"]
             token_url = forms.pop('req_url')
@@ -631,8 +631,7 @@ class Notion_scraper:
 
     def get_notion_block(self, block_url):
 
-        # block_url = "https://www.notion.so/ymmu/ad61d409d6fd47adad133fdd81ba67a8"
-        # 글쓰기 페이지임
+        # block_url = 글쓰기 페이지 주소
         page = self.client.get_block(block_url)
         # print("The title is:", page.title)
         page.children  # 이거 안 해주면 밑에 block을 못 가져옴.
@@ -870,7 +869,7 @@ def request_indexing(url):
     cwd_ = os.path.dirname(os.path.abspath(__file__))
     SCOPES = ["https://www.googleapis.com/auth/indexing"]
     # service_account_file.json is the private key that you created for your service account.
-    JSON_KEY_FILE = os.path.join(cwd_, "../config/ymmu-youtube-analysis-0e3ce1d7eadd.json")
+    JSON_KEY_FILE = os.path.join(cwd_, "../config/g_service.json")
 
     credentials = ServiceAccountCredentials.from_json_keyfile_name(JSON_KEY_FILE, scopes=SCOPES)
     http = credentials.authorize(httplib2.Http())
@@ -908,7 +907,10 @@ def get_config(password):
     from pathlib import Path
 
     dir_path = os.path.dirname(os.path.abspath(__file__))
-    MDB_URL = f"mongodb+srv://ymmu:{password}@blogdistribution.lyfew.mongodb.net"
+    with open(os.path.join(dir_path, '../config', 'ids.json'), 'r', encoding='utf-8') as f:
+        id_ = json.load(f)['mongoDB']
+
+    MDB_URL = f"mongodb+srv://{id_}:{password}@blogdistribution.lyfew.mongodb.net"
     key_vault_namespace = "bd_config.__keystore"
 
     # Load the master key from 'key_bytes.bin':

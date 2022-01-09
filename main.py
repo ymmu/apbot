@@ -116,9 +116,9 @@ def perform(doc_: object):
 if __name__ == '__main__':
 
     db_pass = input('mongoDB db_name: ')
-    ts = TistoryWrapper("myohyun", db_pass)
-    # nw = NaverWrapper("myohyun", db_pass)
-    sw = SteemWrapper('ymmu', db_pass)
+    ts = TistoryWrapper(db_pass)
+    sw = SteemWrapper(db_pass)
+    # nw = NaverWrapper(db_pass)
 
     while True:
         # get doc list form google drive and notion

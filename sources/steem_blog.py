@@ -42,10 +42,10 @@ class SteemWrapper(Post):
     KST = pytz.timezone('Asia/Seoul')
     call_count = 0
 
-    def __init__(self, account, db_pass):
+    def __init__(self, db_pass):
 
         self.blog_ = 'steem'
-        self.account = account
+        self.account = self.get_account(self.blog_)
         self.key_ = self.get_keys(db_pass)
         self.form = self.get_data_form()
         self.repo = self.get_repo()
@@ -354,70 +354,3 @@ class SteemWrapper(Post):
 
         res = self.s.steemd.get_account(account=account)
 
-
-
-if __name__ == '__main__':
-    # print(utils_.get_timestamp())
-    db_pass = input('mongoDB pw: ')
-    sw = SteemWrapper('ymmu', db_pass)
-
-    pprint(sw.s.steemd.get_account('nutbox.mine'))
-    # Test get my post
-    # posts = sw.get_posts(nums=8)
-
-    # Test patch data
-    # post = posts[-1]
-    # pprint(post)
-
-    # 1.
-    # patch_ = sw.wrap_data("./../data/test.txt", type='update')
-    # print('patch: \n')
-    # pprint(patch_)
-
-    # 스코판 글수수료 지불 ---
-    # data= {'permlink': ''}#, 'tags': 'hive-101145'}
-    # sw.transfer_fee(data)
-
-    # sw.update_post(patch_, post)
-
-    # 2.
-    # patch_ = {'body': post['body'] + '\n patch test : {}'.format(utils_.get_timestamp())}
-    # sw.update_post(patch_, post)
-
-    # Test convert an article txt to json data
-    # patch_ = sw.wrap_data()
-    # patch_["permlink"] = post["permlink"]  # only for test
-    # pprint(patch_)
-    # sw.update_post(patch_, post)
-
-    # Test submit posts
-    # data = sw.wrap_data("./../data/test.txt", type='new')
-    # pprint(data)
-    # sw.submit_post(data)
-    ## print(sw.s.__dict__)
-
-    # make data
-    # data = sw.wrap_data("./../data/test.txt")
-    # data["parent_author"] = ""
-    # data["parent_permlink"] = ""
-    # test_d = operations.Comment(data)
-    #
-    # # get image data
-    # test_img_path = '../data/skuld_s.PNG'
-    # name_img = os.path.basename(test_img_path)
-    # prefix_ = 'ImageSigningChallenge'.encode('utf-8')
-    # print(prefix_)
-    #
-    # with open(test_img_path, 'rb') as f:
-    #     binary_ = f.read()
-    #
-    # msg = prefix_ + compat_bytes(binary_)
-    # print(msg)
-    # digest = hashlib.sha256(msg).digest()
-    # print(digest)
-
-    # test
-
-    #
-    #img_links = sw.upload_images(repo='../data')
-    #print(img_links)

@@ -17,16 +17,17 @@ from time import sleep
 from sources import utils_, post_abstract
 import markdown
 
+
 class TistoryWrapper(Post):
 
-    def __init__(self, account,db_pass):
+    def __init__(self, db_pass):
         super(TistoryWrapper, self).__init__()
         self.blog_ = "tistory"
-        self.account = account  # {account}.tistory.com
-        self.key_ = self.get_keys(db_pass)
         self.form = self.get_data_form()
         self.repo = self.get_repo()
-        self.sess_ = Tistory_session(self.form['outh'], self.key_, account, self.blog_)
+        self.account = self.get_account(self.blog_)
+        self.key_ = self.get_keys(db_pass)[self.account]
+        self.sess_ = Tistory_session(self.form['outh'], self.key_, self.account, self.blog_)
 
     def get_data_form(self):
         return super(TistoryWrapper, self).get_data_form()
@@ -448,59 +449,3 @@ class TistoryWrapper(Post):
 class Tistory_session(utils_.Session):
     def __init__(self, form, key_, account, blog_):
         super(Tistory_session, self).__init__(form, key_, account, blog_)
-
-
-if __name__ == '__main__':
-    # ad json 생성
-    # ad = {
-    #     "tistory": {
-    #         "middle_1": '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2743596611810852" crossorigin="anonymous"></script><ins class="adsbygoogle" style="display:block; text-align:center;" data-ad-layout="in-article" data-ad-format="fluid" data-ad-client="ca-pub-2743596611810852" data-ad-slot="9584375938"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script>'
-    #                 }
-    # }
-    # with open('./templates/tistory_ad_script.json', 'w', encoding='utf-8') as f:
-    #     json.dump(ad,f, ensure_ascii=False)
-
-    ts = TistoryWrapper("myohyun")
-
-    # ok
-    # print("\n\n 1. get_category test")
-    # categories = ts.get_categories()
-    # pprint(categories)
-
-    # ok
-    # print("\n\n 1. update_category test")
-    ts.update_categories()
-
-    # ok
-    # print("\n\n 2. get_posts test")
-    # res = ts.get_posts(page=1)
-    # pprint(res)
-
-    # ok
-    # print("\n\n 3. get_post test")
-    # res = ts.get_post(post_id="212")
-    # pprint(res)
-
-    # ok
-    # print("\n\n 4. update_post test")
-    # res = res['tistory']['item']
-    # new_res = copy(res)
-    # new_res['title'] = res['title'] + ' .. 수정'
-    # new_res['category'] = ts.get_category_info(new_res['categoryId'])[0] # 카테고리명
-    #
-    # # 리스트 하위 리스트 잘 찍히는지 확인
-    # new_res['content'] = new_res['content'] + '\n\n' + '<ul>\n' + '<li><strong>markdown</strong> </li>\n' +'</ul>\n' \
-    #                         +'<ul>\n' \
-    #                         +'<li>프로젝트에 이 패키지를 이용. string으로 적은 마크다운을 html로 바로 바꾸어 줌.</li>\n' \
-    #                         +'</ul>\n' \
-    #                         +'<ul>\n' \
-    #                         +'<li>코딩시에 마크다운 변환은 [<strong><a '\
-    #                         +'href="https://www.digitalocean.com/community/tutorials/how-to-use-python-markdown-to-convert-markdown-text-to-html">여기</a></strong> ' \
-    #                         +'<strong>]</strong>에 예제가 잘 나와있다. </li>\n' \
-    #                         +'</ul>\n'\
-    #                         +'<ul>\n'\
-    #                         +'<li>어떤 경우에 마크다운 변환이 제대로 안 되는 경우도 있었다. code 변환 경우가 그랬음. '\
-    #                         +'멀티라인("""사용)예제 그대로 넣었는데 코드로 변환했다는...음;</li>\n'\
-    #                         +'</ul>\n'\
-    #                         +'<ul>\n'
-    # pprint(ts.update_post(new_res))

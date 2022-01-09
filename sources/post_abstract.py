@@ -17,33 +17,15 @@ class Post(metaclass=ABCMeta):
     account = ""
     dir_path = os.path.dirname(os.path.abspath(__file__))
 
+    def get_account(self, blog_):
+        with open(os.path.join(self.dir_path, '../config', 'ids.json'), 'r', encoding='utf-8') as f:
+            return json.load(f)[blog_]  # {account}.tistory.com
+
     def get_data_form(self):
         with open(os.path.join(self.dir_path, './templates', '{}_.json'.format(self.blog_)), 'r') as f:
             return json.load(f)
 
     def get_keys(self, db_pass):
-        # dir_path = os.path.dirname(os.path.abspath(__file__))
-        # password = input('mongoDB db_name: ')
-        # MDB_URL = f"mongodb+srv://ymmu:{password}@blogdistribution.lyfew.mongodb.net"
-        # key_vault_namespace = "bd_config.__keystore"
-        #
-        # # Load the master key from 'key_bytes.bin':
-        # key_bin = Path(os.path.join(dir_path, "../config/key_bytes.bin")).read_bytes()
-        # kms_providers = {"local": {"key": key_bin}}
-        #
-        # csfle_opts = AutoEncryptionOpts(
-        #     kms_providers=kms_providers,
-        #     key_vault_namespace=key_vault_namespace
-        # )
-        #
-        # # auto_encryption_opts=csfle_opts 이게 없으면 find_one할 때 암호화된 상태로 보여줌
-        # with MongoClient(MDB_URL, auto_encryption_opts=csfle_opts) as client:
-        #     db_namespace = 'bd_config.keys'
-        #     db_name, coll_name = db_namespace.split(".", 1)
-        #
-        #     coll = client[db_name][coll_name]
-        #     config_ = coll.find_one()
-        #     # pprint(config_)
         config_ = utils_.get_config(password=db_pass)
         return config_['keys'][self.blog_]
 

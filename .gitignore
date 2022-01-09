@@ -6,10 +6,10 @@ __pycache__
 .idea
 data/*
 samples
-notion-py
-dist
-build
-src
+trash/notion-py
+trash/dist
+trash/build
+trash/src
 logs
 
 sources/tmp_sess.json
@@ -19,4 +19,4 @@ sources/test.log
 글 자동배포봇.html
 
 mongocryptd.pid
-
+trash

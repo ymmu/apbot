@@ -41,7 +41,7 @@ class NaverWrapper(Post):
     def __init__(self, db_pass):
         super(NaverWrapper, self).__init__()
         self.blog_ = "naver"
-        # self.account = account
+        self.account = self.get_account(self.blog_)
         self.key_ = self.get_keys(db_pass)
         self.repo = self.get_repo()
         self.driver = None  # 실제 발행할 때 만들기. 먼저 드라이버 객체 만들면 창이 뜸
@@ -263,12 +263,15 @@ class NaverWrapper(Post):
         # [(name, filename, None), ...]
         return published_list, list(set(map(is_same, zip_list)) - set([None]))
 
-    def record_article(self, publish_list, zip_name):
+    def record_article(self, publish_list, zip_name, account=None):
         """발행을 끝낸 글은 ok처리하고 publish_list.txt에 기록
 
         :param zip_name: 파일 이름
         :return: None
         """
+        if not account:
+            account = self.account
+
         p_file = os.path.join(self.key_[account]['local_repo'], "publish_list.txt")
         p_list = publish_list.query('filename == "{}"'.format(zip_name))
         p_list.__setitem__('done', 'ok')
@@ -278,7 +281,12 @@ class NaverWrapper(Post):
         print(publish_list)
         publish_list.to_csv(p_file, sep='\t', index=False, encoding='utf-8')
 
-    def smarteditor_one(self, account):
+    def smarteditor_one(self, account=None):
+
+        # 계정을 여러 개 관리할 수 있어서 param으로 account 받게 함.
+        # 입력 없으면 default.
+        if not account:
+            account = self.account
 
         # 발행할 글리스트 가져옴. 실행할 때마다
         published_list, result = self.get_articles(account)
@@ -683,7 +691,7 @@ class NaverWrapper(Post):
 
                 time.sleep(5)
                 # 블로그 메인에서 글쓰기 클릭
-                login_url = 'https://blog.naver.com/myohyun'
+                login_url = f'https://blog.naver.com/{account}'
                 self.driver.get(login_url)
                 self.driver.switch_to.frame('mainFrame')
                 WebDriverWait(self.driver, 10).until(
@@ -708,99 +716,3 @@ class NaverWrapper(Post):
                 print("Close the chrome web driver.")
                 self.driver.close()
                 break
-
-
-if __name__ == '__main__':
-
-    db_pass = input('mongoDB db_name: ')
-    nw = NaverWrapper(db_pass)
-    # test_repo = r'C:\Users\myohy\OneDrive\문서\auto_publish'
-    # p_file = os.path.join(test_repo, "publish_list.txt")
-    # import pandas as pd
-    # published_list = pd.read_csv(p_file,
-    #                              sep='\t',
-    #                              infer_datetime_format=True,
-    #                              parse_dates=True)
-    # # published_list['account'] = 'myohyun'
-    # published_list = published_list[['account', 'filename', 'p_date', 'done', 'update']]
-    # print(published_list)
-    # # published_list.to_csv(p_file, sep='\t', index=False, encoding='utf-8')
-
-    # # print(published_list.tail())
-    # print(published_list.query("account=='myohyun'"))
-
-    # p_list = published_list.query('done.isnull()')
-    # print(p_list)
-    # # p_list = published_list.query('filename == "{}"'.format('테스트'))
-    # p_list.__setitem__('done', 'ok')
-    #
-    # print(p_list[['filename', 'p_date']].values)
-    # published_list.update(p_list)
-    # print(published_list)
-    # published_list.to_csv(p_file, sep='\t', index=False, encoding='utf-8')
-
-    for account in ['myohyun']:  # 'lucca_ymmu'
-        nw.smarteditor_one(account=account)
-
-
-    # nw.smarteditor_one(test_repo=test_repo, published="21/08/24 06:00")
-    # nw.smarteditor_one(test_repo=test_repo)C:\Users\myohy\OneDrive\문서\auto_publish\0819 청담점_청담피부관리\1.JPG
-
-    # 폴더 삭제 테스트 ----
-    # work_f = [l for l in os.listdir(test_repo) if l != 'done']
-    # shutil.rmtree(test_repo+r'\샤론파스_1')
-
-    # 폴더 이동 테스트 ----
-    # for l in work_f:
-    #     shutil.move(test_repo+r'\{}'.format(l), test_repo+r'\{}'.format('done'))
-
-    # 압축해제 테스트 ----
-    # zip_list = glob.glob(os.path.join(test_repo, "*.zip"))
-    # for zip_p in zip_list:
-    #     print(zip_p)
-    #     zip_ = zipfile.ZipFile(zip_p)
-    #     # print(zip_.infolist())
-    #     folder_p = zip_p.split(".zip")[0]
-    #     if os.path.exists(folder_p):
-    #         os.remove(folder_p)
-    #     os.makedirs(folder_p)
-    #     for member in zip_.infolist():
-    #         if member.filename.endswith(('.txt','.docx')):
-    #             member.filename = member.filename.encode().decode()
-    #             print(member.filename)
-    #         zip_.extract(member, folder_p)
-    #     # print(zip_.extractall(test_repo))
-    #     # print(folder_p)
-
-    # wrap_data 테스트
-    # title, paragraphs, images_, videos_ = nw.wrap_data(data_dir=folder_p)
-    # print(title)
-    # print(paragraphs)
-    # print(images_)
-    # print(videos_)
-
-    # temp()
-    # nw = NaverWrapper("myohyun")
-    # nw.upload_images()
-    #
-    # try:
-    #     headers = {'Authorization': 'Client-ID 838a9ea86eca8a3'}
-    #     res = requests.get(url='https://api.imgur.com/3/image/2MD2Rxm', headers=headers)
-    #     if res.status_code == 200:
-    #         print(res.json())
-    #         print()
-    #     else:
-    #         # print(res.text)
-    #         raise Exception(res)
-    #
-    #     res = requests.delete(url='https://api.imgur.com/3/image/sudvzlxLMMo38JY', headers=headers)
-    #
-    #     if res.status_code == 200:
-    #         print(res.json())
-    #         print()
-    #     else:
-    #         # print(res.text)
-    #         raise Exception(res)
-    #
-    # except Exception as e:
-    #     print(e)
