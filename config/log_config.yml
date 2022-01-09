@@ -1,0 +1,37 @@
+version: 1
+formatters:
+  simple:
+    format: '%(asctime)s - %(name)-8s - [%(levelname)] - %(levelname)s - %(message)s'
+  default:
+    format: '[%(asctime)s][%(levelname)s][%(name)s] %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+handlers:
+  console:
+    class : logging.StreamHandler
+    formatter: default
+    level   : INFO
+    stream  : ext://sys.stdout
+  file:
+    class : logging.handlers.TimedRotatingFileHandler
+    formatter: default
+    filename: .//logs//test.log
+    backupCount: 3
+    encoding: utf-8
+    when: midnight
+loggers:
+  simpleExample:
+    level: INFO
+    handlers: [console]
+    propagate: no
+  naver:
+    level: INFO
+    handlers: [ file ]
+  tistory:
+    level: INFO
+    handlers: [ file ]
+  main:
+    level: INFO
+    handlers: [ file,console ]
+root:
+  level: INFO
+  handlers: [file,console]
