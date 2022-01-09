@@ -20,3 +20,4 @@ sources/test.log
 
 mongocryptd.pid
 trash
+test.py
