@@ -5,6 +5,5 @@ It aims to help an author store articles in one place and publish them automatic
 - [x] Steemit
 - [x] Tistory
 - [x] Naver
- 
----
 
+---

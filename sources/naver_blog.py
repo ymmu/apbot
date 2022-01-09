@@ -231,6 +231,7 @@ class NaverWrapper(Post):
     def get_articles(self, account):
         """발행할 글 publish_list에서 체크 -> 해당 zip 압축풀고 가져오기
 
+        :param account:
         :param test_repo:
         :return:
         """

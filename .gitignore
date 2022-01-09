@@ -6,6 +6,7 @@ __pycache__
 .idea
 data/*
 samples
+trash
 trash/notion-py
 trash/dist
 trash/build
@@ -19,5 +20,5 @@ sources/test.log
 글 자동배포봇.html
 
 mongocryptd.pid
-trash
 test.py
+
