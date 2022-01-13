@@ -1,3 +1,4 @@
+import json
 import traceback
 from pprint import pprint
 
@@ -12,7 +13,7 @@ with open('./config/log_config.yml') as f:
 # Pytohn standard logger
 import logging.config
 logging.config.dictConfig(log_config)
-logger = logging.getLogger(name='doc_data')
+logger = logging.getLogger(name='doc')
 
 # google cloud logging api
 from google.cloud import logging as g_logging
@@ -73,7 +74,7 @@ def perform(doc_: object):
 
         except Exception as e:
             # print('error ts.create_post in main')
-            # traceback.print_exc()
+            traceback.print_exc()
             # log wrapper로 전달
             raise Exception('error ts.create_post in main', traceback.format_exc()) from e
 
@@ -117,7 +118,7 @@ if __name__ == '__main__':
         for doc in doc_list:
             # pprint(doc)
 
-            logger.info(doc[1])
+            logger.info(json.dumps(doc[1], ensure_ascii=False))
             gclogger.log_struct(doc[1])    # put original data into gcl
             perform(doc)
             pass

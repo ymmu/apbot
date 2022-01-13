@@ -18,10 +18,10 @@ handlers:
     backupCount: 3
     encoding: utf-8
     when: midnight
-  doc_data:
+  doc:
     class: logging.handlers.TimedRotatingFileHandler
     formatter: default
-    filename: .//logs//doc_data.log
+    filename: .//logs//doc.log
     backupCount: 3
     encoding: utf-8
     when: midnight
@@ -43,9 +43,9 @@ loggers:
   monitoring:
     level: INFO
     handlers: [ monitoring ]
-  doc_data:
+  doc:
       level: INFO
-      handlers: [ doc_data, console ]
+      handlers: [ doc, console ]
 root:
   level: INFO
   handlers: [console]

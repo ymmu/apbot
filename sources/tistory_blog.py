@@ -288,10 +288,11 @@ class TistoryWrapper(Post):
             res = requests.post(req_url, data=form)
             if res.status_code == 200:
                 # print(res.text)
+                res = res.json()
                 res[self.blog_].update({"title": form["title"]})
-                return res.json()
+                return res
             else:
-                raise Exception(res)
+                raise Exception(res.json())
         except Exception as e:
             print(e)
 
