@@ -11,13 +11,21 @@ handlers:
     formatter: default
     level   : INFO
     stream  : ext://sys.stdout
-  file:
+  monitoring:
     class : logging.handlers.TimedRotatingFileHandler
     formatter: default
-    filename: .//logs//test.log
+    filename: .//logs//monitoring.log
     backupCount: 3
     encoding: utf-8
     when: midnight
+  doc_data:
+    class: logging.handlers.TimedRotatingFileHandler
+    formatter: default
+    filename: .//logs//doc_data.log
+    backupCount: 3
+    encoding: utf-8
+    when: midnight
+
 loggers:
   simpleExample:
     level: INFO
@@ -25,13 +33,19 @@ loggers:
     propagate: no
   naver:
     level: INFO
-    handlers: [ file ]
+    handlers: [ console ]
   tistory:
     level: INFO
-    handlers: [ file ]
+    handlers: [ console ]
   main:
     level: INFO
-    handlers: [ file,console ]
+    handlers: [ console ]
+  monitoring:
+    level: INFO
+    handlers: [ monitoring ]
+  doc_data:
+      level: INFO
+      handlers: [ doc_data, console ]
 root:
   level: INFO
-  handlers: [file,console]
+  handlers: [console]

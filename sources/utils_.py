@@ -24,7 +24,6 @@ import time
 import array
 import sys
 from binascii import hexlify, unhexlify
-from collections import OrderedDict
 from datetime import datetime
 import os.path
 import re
@@ -37,7 +36,6 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.http import MediaIoBaseDownload
-from apiclient import errors
 
 import ecdsa
 from steem.utils import compat_bytes, compat_chr
@@ -658,7 +656,9 @@ class Notion_scraper:
         for search in ["publish", "update"]:
             for row in self.doing_table.collection.get_rows(search=search):
                 if row.blog == blog_ and row.title == rst[blog_]["title"]:
-                    if rst[blog_]["status"] == "200":
+                    # Steemit은 json으로 데이터를 줘서.. status가 없음.
+                    # 그렇다고 200으로 넘길 순 없어서 일단 None 처리해놓음.
+                    if rst[blog_]["status"]  in ["200", None]:
                         row.status = "hold"  # 발행하고 수정하는 일이 많아서 check로 바뀌게 함
                         row.post_url = rst[blog_]['url']
                         log_t = datetime.now().strftime("%Y/%m/%d %H:%M")
@@ -669,8 +669,8 @@ class Notion_scraper:
                         elif search == "update":
                             row.updated = log_t
                     else:
-                        row.error_msg = rst[blog_]["msg"]
-                        row.status = rst[blog_]["status"] + " error"
+                        # row.error_msg = rst[blog_]["msg"]
+                        row.status = rst[blog_]["status"] + "error"
 
     def get_docs(self):
         """ 소재 테이블에서 done인 글들은 done 테이블로 보내고, publish 글들은 내보내기
@@ -721,7 +721,12 @@ class Notion_scraper:
                     "content": []
                 }
                 if row.status == 'update':
-                    article_info["post_url"] = re.search(r"https://[a-z]+.tistory.com/[0-9]{1,7}", row.post_url).group()
+                    if row.blog == 'tistory':
+                        article_info["post_url"] = re.search(r"https://[a-z]+.tistory.com/[0-9]{1,7}", row.post_url).group()
+                    elif row.blog == 'steemit':
+                        # ex. https://steemit.com/kr/@ymmu/0489794267
+                        print(row.post_url)
+                        article_info["post_url"] = re.search(r"https://steemit.com/\w+/@\w+/\w+", row.post_url).group()
 
                 for child in row.children:
                     # print(child.title, child.space_info, child.__dict__, type(child), child.type, child.__dir__())
@@ -924,7 +929,11 @@ def get_config(password):
 
     # config_ = None
     # auto_encryption_opts=csfle_opts 이게 없으면 find_one할 때 암호화된 상태로 보여줌
-    with MongoClient(MDB_URL, auto_encryption_opts=csfle_opts, ssl=True, ssl_cert_reqs='CERT_NONE') as client:
+    # with MongoClient(MDB_URL, auto_encryption_opts=csfle_opts, ssl=True, ssl_cert_reqs='CERT_NONE') as client:
+    # DeprecationWarning: Option 'ssl_cert_reqs' is deprecated, use 'tlsAllowInvalidCertificates' instead.
+    # - ref: https://docs.mongodb.com/manual/reference/connection-string/
+    with MongoClient(MDB_URL, auto_encryption_opts=csfle_opts, ssl=True, tlsAllowInvalidCertificates=True) as client:
+
         db_namespace = 'bd_config.keys'
         db_name, coll_name = db_namespace.split(".", 1)
 

@@ -29,11 +29,11 @@ from pathlib import Path
 import logging.config
 import yaml
 
-with open('../config/log_config.yml') as f:
-    log_config = yaml.load(f, Loader=yaml.FullLoader)
-
-logging.config.dictConfig(log_config)
-logger = logging.getLogger(name='naver')
+# with open('../config/log_config.yml') as f:
+#     log_config = yaml.load(f, Loader=yaml.FullLoader)
+#
+# logging.config.dictConfig(log_config)
+# logger = logging.getLogger(name='naver')
 
 
 class NaverWrapper(Post):

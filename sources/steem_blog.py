@@ -44,9 +44,9 @@ class SteemWrapper(Post):
 
     def __init__(self, db_pass):
 
-        self.blog_ = 'steem'
-        self.account = self.get_account(self.blog_)
+        self.blog_ = 'steemit'
         self.key_ = self.get_keys(db_pass)
+        self.account = self.get_account(self.blog_)
         self.form = self.get_data_form()
         self.repo = self.get_repo()
         self.s = Steem(nodes=['https://api.steemit.com'], keys=[self.key_['private_posting_key']])
@@ -99,6 +99,7 @@ class SteemWrapper(Post):
         return content
 
     def transfer_fee(self, data):
+        rst_2 = None
         if data['tags'].split(' ')[0] == 'hive-101145':
             # 스코판이면 수수료 보내는 작업
             stm = beem_steem(wif=self.key_['private_active_key'])
@@ -112,19 +113,31 @@ class SteemWrapper(Post):
         else:
             print('It\'s not the post from steemcoinpan. ')
 
-    def create_post(self, data):
-        rst, rst_2 = None, None
-        try:
-            data = self.wrap_data(data)
-            rst = self.s.commit.post(**data)
-            pprint(rst)
-            c = input('enter: ')
+        return rst_2
 
-            self.transfer_fee(data)
+    def create_post(self, data):
+        rst_dict = {'steemit': {}}
+        rst_1, rst_2 = None, None
+        try:
+            task = data['task']
+            data = self.wrap_data(data)
+            rst_1 = self.s.commit.post(**data)
+            pprint(rst_1)
+
+            rst_2 = self.transfer_fee(data)
 
             print("Post created successfully")
+            rst_dict['steemit']['msg'] = rst_1
+            rst_dict['steemit']['msg']['transfer_fee'] = rst_2
+            url = 'https://steemit.com/{}/@{}/{}'.format(data['tags'][0],
+                                                         self.account,
+                                                         data['permlink'])
+            rst_dict.update({"status": None,    # steemit은 에러 결과가 json에 담겨올 듯.
+                             "url": url,
+                             'task': task,
+                             "title": data['title']}) # url 추가
 
-            return rst, rst_2
+            return rst_dict
 
         except Exception as e:
             print('error create_post in steem_blog. ')
@@ -147,6 +160,7 @@ class SteemWrapper(Post):
     def wrap_data(self, doc: object = None, local_repo: str = None, type='new', **kargs):
         ''' put raw data into json.
 
+        :param type: 'new'|'update'
         :param doc: 외부 저장소에서 가져온 데이터
         :param local_repo: 로컬저장소글 보관하는 위치. 나중에 구글 드라이브에서 가져올 예정.
         :return:
@@ -185,8 +199,10 @@ class SteemWrapper(Post):
 
             # 이미지 링크 얻어오기
             img_links = self.upload_images(doc['images'])  # 실전
-            # img_links = [('0', {'url': 'https://cdn.steemitimages.com/DQmPCQ862ikNrtTmD3QEjJoGoGybuDjVB4obyMApNUGNyoL/0'})]
+            # img_links = [('0', {'url':
+            # 'https://cdn.steemitimages.com/DQmPCQ862ikNrtTmD3QEjJoGoGybuDjVB4obyMApNUGNyoL/0'})]
             print(img_links)
+
             # 본문에 이미지 삽입
             body = SteemWrapper.attach_images(body, img_links)
 
@@ -194,14 +210,13 @@ class SteemWrapper(Post):
             print(doc)
             body = self.attach_youtube(body, doc["videos"])
 
-            # 태그 붙이기
-            tags = ' '.join(doc['tags'])
-
             # <space> 바꾸기
             for idx, t in enumerate(doc["content"]):
                 doc["content"][idx] = re.sub("<space>", '\n', t)
 
             print(body)
+
+            tags = ' '.join(doc['tags'])
             form.update({
                 "title": doc['title'],
                 "body": body,
@@ -211,8 +226,17 @@ class SteemWrapper(Post):
 
         if type == 'new':
             form["permlink"] = ''.join(random.choices(string.digits, k=10))  # random generator to create post permlink
+
         elif type == 'update':
             form['body'] += ' \n\n * Last update : {}'.format(utils_.now_timestamp())
+            # data_["reply_identifier"] = (data['parent_author'] + '/' + data['parent_permlink'])
+            # parent_author 의미가 모호하네. /parent_author/parent_permlink/root_author/root_permlink 인가?
+            # https://steemit.com/kr/@ymmu/9565539929
+            p_permlink, permlink = doc['post_url'].split('/')[-3], doc['post_url'].split('/')[-1]
+            form.update({"permlink": permlink,
+                         'json_metadata': {'tags': doc['tags']},
+                         "reply_identifier": ('' + '/' + p_permlink)
+                         })
 
         return form
 
@@ -237,32 +261,36 @@ class SteemWrapper(Post):
 
         return data
 
-    def update_post(self, new_data, data, **kargs):
-
+    def update_post(self, new_data, data=None, **kargs):
+        rst_dict = {self.blog_: None}
         try:
+            # 기존 데이터를 get함수로 steemit에서 받아와서 새 데이터로 갱신 후 업데이트
             # extract_necessary items from data
-            data_ = self.extract_params(data)
+            # data_ = self.extract_params(data)
 
             # Validate if new data have wrong keys and
             # patch it to original data
-            if not self.validate_params(new_data):
-                raise Exception('Wrong validate params.', new_data)
+            # if not self.validate_params(new_data):
+            #     raise Exception('Wrong validate params.', new_data)
+            # data_.update(new_data)
 
-            data_.update(new_data)
-            # needed for update
-            data_["reply_identifier"] = (data['parent_author'] + '/' + data['parent_permlink'])
-            pprint(data_)
+            # Notion에서 업데이트한 데이터
+            data_ = self.wrap_data(new_data, type='update')
 
-            self.s.commit.post(**data_)
+            rst = self.s.commit.post(**data_)
+            # pprint(rst)
+            rst_dict[self.blog_] = rst
+            rst_dict[self.blog_].update({"status": None,
+                                         "title": data_["title"],
+                                         'task': new_data['task'],
+                                         "url": new_data['post_url']})
 
-            # return the url of edited post
-            post_url = 'https://steemit.com/{}/@{}/{}'.format(data_['tags'].split(" ")[0], self.account,
-                                                              data_['permlink'])
-            # print(post_url)
-            print("Post was updated successfully: {}".format(post_url))
+            print("Post was updated successfully: {}".format(new_data['post_url']))
+            # pprint(rst_dict)
+            return rst_dict
 
         except Exception as e:
-            print(e)
+            traceback.print_exc()
 
     def upload_images(self, imgs: list, repo=None, **kargs) -> list:
         """send images to steemimages.com and get image links

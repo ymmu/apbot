@@ -1,6 +1,3 @@
-import json
-import re
-import time
 import traceback
 from pprint import pprint
 
@@ -8,14 +5,19 @@ from sources import utils_, log_decorator
 # from sources.never_blog import NaverWrapper
 from sources.steem_blog import SteemWrapper
 from sources.tistory_blog import TistoryWrapper
-import logging.config
 import yaml
-
 with open('./config/log_config.yml') as f:
     log_config = yaml.load(f, Loader=yaml.FullLoader)
 
+# Pytohn standard logger
+import logging.config
 logging.config.dictConfig(log_config)
-logger = logging.getLogger(name='main')
+logger = logging.getLogger(name='doc_data')
+
+# google cloud logging api
+from google.cloud import logging as g_logging
+gcl_client = g_logging.Client()
+gclogger = gcl_client.logger('apbot-doc-data')
 
 
 def update_repo(rst, repo):
@@ -56,7 +58,6 @@ def perform(doc_: object):
                 print("update")
                 doc = ts.wrap_data(doc)
                 rst = ts.update_post(doc)
-                rst[blog_].update({"title": doc["title"]})
                 update_repo(rst, repo)
 
             ''' rst
@@ -73,6 +74,7 @@ def perform(doc_: object):
         except Exception as e:
             # print('error ts.create_post in main')
             # traceback.print_exc()
+            # log wrapper로 전달
             raise Exception('error ts.create_post in main', traceback.format_exc()) from e
 
     elif blog_ == 'steemit':
@@ -82,33 +84,19 @@ def perform(doc_: object):
             # pprint(sw.wrap_data(doc))
             if task == 'publish':
                 rst = sw.create_post(doc)
-            # elif task == 'update': # 노션만 되어있음
-            #     rst = sw.update_post(doc)
+                print('#'*20)
+                pprint(rst)
+            elif task == 'update':
+                rst = sw.update_post(doc)
+                print('Update '+'#'*20)
+                pprint(rst)
+            update_repo(rst, repo)
 
-            # pprint(rst[0])
-            # pprint(rst[1])
-
-            # ''' rst
-            #                 {
-            #                   "tistory":{
-            #                     "status":"200",
-            #                     "postId":"74",
-            #                     "url":"http://sampleUrl.tistory.com/74",
-            #                     "title": "추가"
-            #                   }
-            #                 }
-            #                 '''
-            #
-            # pprint(rst)
-            # rst["tistory"].update({"title": doc["title"]})
-            # if repo == 'notion':
-            #     utils_.update_doc_notion(rst)
-            # elif repo == 'g_docs':
-            #     # 발행한 글 관련 폴더로 이동시킴
-            #     pass
         except Exception as e:
-            print('error ts.create_post in main')
-            traceback.print_exc()
+            # print('error ts.create_post in main')
+            # traceback.print_exc()
+            # log wrapper로 전달
+            raise Exception('error sw.create_post in main', traceback.format_exc()) from e
 
     # time.sleep(60*10) # every 10 mins
 
@@ -128,6 +116,9 @@ if __name__ == '__main__':
         doc_list = n_scraper.get_docs()
         for doc in doc_list:
             # pprint(doc)
+
+            logger.info(doc[1])
+            gclogger.log_struct(doc[1])    # put original data into gcl
             perform(doc)
             pass
         break

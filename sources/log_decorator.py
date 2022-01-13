@@ -2,13 +2,25 @@ import logging.config
 import os
 import traceback
 import yaml
+from google.cloud import monitoring_v3
+from google.cloud import logging as g_logging
 
+dir_path = os.path.dirname(os.path.abspath(__file__))
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.join(dir_path, '../config/g_service.json')
 dir_path = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(dir_path, '../config/log_config.yml')) as f:
     log_config = yaml.load(f, Loader=yaml.FullLoader)
 
 logging.config.dictConfig(log_config)
-logger = logging.getLogger()
+logger = logging.getLogger('monitoring')
+
+# Retrieves a Cloud Logging handler based on the environment
+# you're running in and integrates the handler with the
+# Python logging module. By default this captures all logs
+# at INFO level and higher
+# client.setup_logging()
+gcl_client = g_logging.Client()
+gclogger = gcl_client.logger('apbot')
 
 
 class Log_:
@@ -20,8 +32,8 @@ class Log_:
         def wrapper(self, *args, **kargs):  # 호출할 함수가 인스턴스 메서드이므로 첫 번째 매개변수는 self로 지정
             msg = {
                 'function': func.__name__,
-                'args': args,
-                'kargs': kargs
+                'args': args if args else None,
+                'kargs': kargs if kargs else None,
             }
             print(msg)
             try:
@@ -30,9 +42,8 @@ class Log_:
                     'status': 'success'
                 })
                 logger.info(msg)
-                # with open(log_dir, 'a', encoding='utf-8') as f:
-                #     f.write(json.dumps(msg, ensure_ascii=False))
-                #     f.write('\n')
+                gclogger.log_struct(msg)
+
                 return r
 
             except Exception as e:

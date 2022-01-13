@@ -221,6 +221,7 @@ class TistoryWrapper(Post):
             # pass
             res = requests.post(req_url, data=form)  # data field에 form을 넣어야 함 (414 코드 관련)
             if res.status_code == 200:
+                res.update({'task': data['task']})
                 return res.json()
             else:
                 # print(res.text)
@@ -287,6 +288,7 @@ class TistoryWrapper(Post):
             res = requests.post(req_url, data=form)
             if res.status_code == 200:
                 # print(res.text)
+                res[self.blog_].update({"title": form["title"]})
                 return res.json()
             else:
                 raise Exception(res)
