@@ -713,6 +713,7 @@ class Notion_scraper:
                     "timestamp": timestamp_,
                     "tags": [tag.lower() for tag in row.tags],
                     "images": [],
+                    "image_urls":[],
                     "videos": [],
                     "codes": [],
                     "task": row.status,
@@ -732,6 +733,7 @@ class Notion_scraper:
                     # print(child.title, child.space_info, child.__dict__, type(child), child.type, child.__dir__())
                     if child.type == 'image':
                         # article_info['images'].append(child.caption)
+                        article_info['image_urls'].append(child.source)
                         article_info['images'].append(download_img(child.source))  # bytes 저장임
                         article_info["content"].append("\n(img:{})\n".format(len(article_info['images']) - 1))
 

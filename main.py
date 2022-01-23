@@ -51,6 +51,7 @@ def perform(doc_: object):
             if task == 'publish':  # 노션만 되어있음
                 print("publish")
                 rst = ts.create_post(doc)
+                pprint(rst)
                 utils_.request_indexing(rst[blog_]["url"])
                 rst[blog_].update({"title": doc["title"]})
                 update_repo(rst, repo)
@@ -118,8 +119,12 @@ if __name__ == '__main__':
         for doc in doc_list:
             # pprint(doc)
 
+            # log 위해서 image byte pop
+            images = doc[1].pop("images")
+            pprint(doc[1])
             logger.info(json.dumps(doc[1], ensure_ascii=False))
             gclogger.log_struct(doc[1])    # put original data into gcl
+            doc[1]["images"] = images
             perform(doc)
             pass
         break
