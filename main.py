@@ -47,7 +47,14 @@ def perform(doc_: object):
         try:
             if task == 'test':
                 pprint(ts.wrap_data(doc))
-
+                rst = {
+                          "test":{
+                            "status":"200",
+                            "postId":"74",
+                            "url":"http://test",
+                            "title": "test"
+                          }
+                        }
             if task == 'publish':  # 노션만 되어있음
                 print("publish")
                 rst = ts.create_post(doc)
@@ -61,17 +68,6 @@ def perform(doc_: object):
                 doc = ts.wrap_data(doc)
                 rst = ts.update_post(doc)
                 update_repo(rst, repo)
-
-            ''' rst
-                            {
-                              "tistory":{
-                                "status":"200",
-                                "postId":"74",
-                                "url":"http://sampleUrl.tistory.com/74",
-                                "title": "추가"
-                              }
-                            }
-                            '''
 
         except Exception as e:
             # print('error ts.create_post in main')

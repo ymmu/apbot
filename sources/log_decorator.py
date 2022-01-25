@@ -1,3 +1,4 @@
+import json
 import logging.config
 import os
 import traceback
@@ -41,7 +42,7 @@ class Log_:
                 msg.update({
                     'status': 'success'
                 })
-                logger.info(msg)
+                logger.info(json.dumps(msg, ensure_ascii=False))
                 gclogger.log_struct(msg)
 
                 return r
