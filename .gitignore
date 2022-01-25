@@ -6,6 +6,7 @@ elk/logstash/config/logstash.yml
 elk/logstash/docker_logstash.yml
 elk/logstash/pipeline/apbot.conf
 
+
 __pycache__
 .idea
 data/*

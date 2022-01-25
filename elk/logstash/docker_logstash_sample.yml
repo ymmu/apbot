@@ -1,0 +1,12 @@
+version: '3.9'
+services:
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.16.2
+    restart: always
+    volumes:
+      - /data/elk/logstash/config:/usr/share/logstash/config
+      - /data/elk/logstash/pipeline:/usr/share/logstash/pipeline
+      - /data/elk/logstash/apps:/data/apps
+      - /data/elk/logstash/logs:/usr/share/logstash/logs
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
