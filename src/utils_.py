@@ -635,10 +635,10 @@ class Notion_scraper:
         # return self.client
 
     def get_table(self, kind="doing"):
-        block_url = self.configs['writing']
+        block_url = self.config_['writing']
         self.get_notion_block(block_url=block_url)
         # 글쓰기 페이지에서 소재 table
-        cv = self.client.get_block(self.configs[kind])
+        cv = self.client.get_block(self.config_[kind])
         return cv
 
     def update_doc(self, rst: object) -> object:

@@ -1,7 +1,7 @@
 import json
 import traceback
 from pprint import pprint
-
+import getpass
 from src import utils_, log_decorator
 # from src.never_blog import NaverWrapper
 from src.steem_blog import SteemWrapper
@@ -101,7 +101,8 @@ def perform(doc_: object):
 
 if __name__ == '__main__':
 
-    db_pass = input('mongoDB passwd: ')
+    db_pass = getpass.getpass('mongoDB passwd: ')
+    # db_pass = input('mongoDB passwd: ')
     ts = TistoryWrapper(db_pass)
     sw = SteemWrapper(db_pass)
     # nw = NaverWrapper(db_pass)
