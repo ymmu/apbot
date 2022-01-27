@@ -1,21 +1,13 @@
 import json
 import os.path
 import re
-import sys
 from copy import copy
 from pprint import pprint
-
-import gh_md_to_html
-import requests
-from urllib.parse import urlparse, parse_qs
 from sources.post_abstract import Post
-from datetime import datetime
-from selenium import webdriver
-import bs4
-from time import sleep
+import markdown
+import requests
 
 from sources import utils_, post_abstract
-import markdown
 
 
 class TistoryWrapper(Post):

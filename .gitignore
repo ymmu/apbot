@@ -1,6 +1,8 @@
 !config
 config/*
 !config/log_config.yml
+!config/ids_sample.json
+!config/config_sample.json
 
 elk/logstash/config/logstash.yml
 elk/logstash/docker_logstash.yml
@@ -23,7 +25,7 @@ sources/token.json
 sources/templates/categories.json
 sources/test.log
 글 자동배포봇.html
-
+requirements_.txt
 mongocryptd.pid
 test.py
 

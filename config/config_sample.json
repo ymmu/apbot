@@ -1,0 +1,33 @@
+{
+  "keys":{
+    "steemit":{
+      "private_posting_key": "",
+      "private_active_key": ""
+    },
+    "tistory": {
+      "tistory_id": {
+        "app_id": "",
+        "secret_key": ""
+      }
+    },
+    "naver": {
+      "naver_id_1":{
+        "secret_key": "",
+        "local_repo": "/your/path"
+      },
+      "naver_id_2":{
+        "secret_key": "",
+        "local_repo": "/your/path"
+      }
+    },
+    "notion": {
+      "token_v2": "web_browser_token",
+      "writing": "block",
+      "doing": "block",
+      "done" : "block"
+    },
+    "slack": {
+      "steemit_notification": "custom_token"
+    }
+  }
+}

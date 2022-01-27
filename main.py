@@ -101,7 +101,7 @@ def perform(doc_: object):
 
 if __name__ == '__main__':
 
-    db_pass = input('mongoDB db_name: ')
+    db_pass = input('mongoDB passwd: ')
     ts = TistoryWrapper(db_pass)
     sw = SteemWrapper(db_pass)
     # nw = NaverWrapper(db_pass)
@@ -119,6 +119,7 @@ if __name__ == '__main__':
             images = doc[1].pop("images")
             pprint(doc[1])
             logger.info(json.dumps(doc[1], ensure_ascii=False))
+            # code 파싱 에러남. 아마 특수문자때문에
             gclogger.log_struct(doc[1])    # put original data into gcl
             doc[1]["images"] = images
             perform(doc)

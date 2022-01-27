@@ -1,41 +1,29 @@
+from steem.blog import Blog
+from steembase import operations, transactions
+from steem import Steem, transactionbuilder
+from beem import Steem as beem_steem
+from steemengine.wallet import Wallet
+
+from copy import copy
+from pprint import pprint
+import string
+import re
+import traceback
+import pytz
+import random
+import requests
+
+from sources import utils_, post_abstract
+from sources.post_abstract import Post
+
+from binascii import hexlify, unhexlify
 import base64
 import glob
 import hashlib
 import io
-import re
-import traceback
-from binascii import hexlify, unhexlify
-from copy import copy
-
 import docx
 from steem.utils import compat_bytes
 
-from sources import utils_, post_abstract
-
-import string
-from steem.blog import Blog
-from steembase import operations, transactions
-from steem import Steem, transactionbuilder
-from pprint import pprint
-import json
-import pytz
-import os
-import random
-import requests
-from requests.exceptions import HTTPError
-
-import numpy as np
-import pandas as pd
-import requests
-from pick import pick
-from datetime import datetime
-import time
-import argparse
-from diff_match_patch import diff_match_patch
-
-from sources.post_abstract import Post
-from beem import Steem as beem_steem
-from steemengine.wallet import Wallet
 
 
 class SteemWrapper(Post):

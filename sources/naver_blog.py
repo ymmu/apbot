@@ -1,5 +1,4 @@
 import glob
-import json
 import os
 import re
 import shutil
@@ -7,27 +6,20 @@ import traceback
 from datetime import datetime
 import zipfile
 import pandas as pd
-from pprint import pprint
-from urllib.parse import urlparse, parse_qs
-
-import requests
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.support import expected_conditions as ec
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.common.by import By
 import time
 import pyperclip
 import pyautogui
+
+from selenium import webdriver
+from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
+
 from sources import utils_
 from sources.post_abstract import Post
-from imgurpython import ImgurClient
-from selenium.webdriver.common.action_chains import ActionChains
-from pathlib import Path
 
-import logging.config
-import yaml
 
 # with open('../config/log_config.yml') as f:
 #     log_config = yaml.load(f, Loader=yaml.FullLoader)

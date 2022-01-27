@@ -1,35 +1,21 @@
-import json
-import os
-import random
-import string
-import traceback
-from pprint import pprint
 from urllib.parse import parse_qs, urlparse
-
-import certifi
-import markdown
-import notion
 import pytz
-from datetime import datetime, date
-
+from datetime import date
 import requests
 from PIL import Image
-import io
+import io, os
 import steembase
-
 import hashlib
-import logging
 import struct
 import time
 import array
 import sys
-from binascii import hexlify, unhexlify
-from datetime import datetime
-import os.path
 import re
 import json
-from pprint import pprint
 from notion.client import NotionClient
+from pprint import pprint
+from binascii import hexlify, unhexlify
+from datetime import datetime
 
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -60,6 +46,14 @@ except:  # noqa FIXME(sneak)
     USE_SECP256K1 = False
     # log.debug("To speed up transactions signing install \n"
     #          "    pip install secp256k1")
+
+import random
+import string
+import traceback
+import certifi
+import markdown
+import notion
+
 
 
 class SignImage(steembase.transactions.SignedTransaction):

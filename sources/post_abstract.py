@@ -1,14 +1,12 @@
 import glob
 import re
-import shutil
 import traceback
 from abc import *
 import os
 import json
-from pprint import pprint
-
 import docx
 from sources import utils_
+from pprint import pprint
 
 
 class Post(metaclass=ABCMeta):
