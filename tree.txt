@@ -1,0 +1,64 @@
+apbot
+|   .gitignore
+|   main.py
+|   README.md
+|   requirements.txt
+|   setup.sh
+|
++---config
+|       config_sample.json
+|       credentials.json
+|       g_service.json
+|       ids.json
+|       json_schema.json
+|       keys_schema.json
+|       key_bytes.bin
+|       log_config.yml
+|       token.json
+|       
++---elk
+|   \---logstash
+|       |   docker_logstash.yml
+|       |
+|       +---config
+|       |       jvm.options
+|       |       log4j2.properties
+|       |       logstash.yml
+|       |       pipelines.yml
+|       |       startup.options
+|       |       
+|       +---logs
+|       \---pipeline
+|               apbot.conf
+|               pipeline_sample.conf
+|               
++---logs
+|       doc.log
+|       doc.log.2022-01-13
+|       doc.log.2022-01-23
+|       doc.log.2022-01-25
+|       monitoring.log
+|       monitoring.log.2022-01-13
+|       monitoring.log.2022-01-23
+|       monitoring.log.2022-01-25
+|
++---src
+|   |   encrypted_mongodb.py
+|   |   log_decorator.py
+|   |   mongocryptd.pid
+|   |   naver_blog.py
+|   |   post_abstract.py
+|   |   steem_blog.py
+|   |   tistory_blog.py
+|   |   tmp_sess.json
+|   |   token.json
+|   |   utils_.py
+|   |   
+|   +---templates
+|   |       categories.json
+|   |       naver_ad_index.json
+|   |       steemit_.json
+|   |       tistory_.json
+|   |       tistory_ad_script.json
+|   |
+\---
