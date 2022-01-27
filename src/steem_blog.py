@@ -13,8 +13,8 @@ import pytz
 import random
 import requests
 
-from sources import utils_, post_abstract
-from sources.post_abstract import Post
+from src import utils_, post_abstract
+from src.post_abstract import Post
 
 from binascii import hexlify, unhexlify
 import base64

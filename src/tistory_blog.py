@@ -3,11 +3,11 @@ import os.path
 import re
 from copy import copy
 from pprint import pprint
-from sources.post_abstract import Post
+from src.post_abstract import Post
 import markdown
 import requests
 
-from sources import utils_, post_abstract
+from src import utils_, post_abstract
 
 
 class TistoryWrapper(Post):
