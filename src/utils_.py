@@ -612,11 +612,13 @@ def get_docs_from_gdrive() -> object:
 
 class Notion_scraper:
 
-    def __init__(self):
-        cwd_ = os.path.dirname(os.path.abspath(__file__))
-        with open(cwd_ + '/../config/config.json', 'r') as f:
-            self.configs = json.load(f)['keys']['notion']
-            token_v2 = self.configs['token_v2']
+    def __init__(self, db_pass):
+        # cwd_ = os.path.dirname(os.path.abspath(__file__))
+        # with open(cwd_ + '/../config/config.json', 'r') as f:
+        #     self.configs = json.load(f)['keys']['notion']
+        #     token_v2 = self.configs['token_v2']
+        self.config_ = get_config(password=db_pass)['keys']['notion']
+        token_v2 = self.config_['token_v2']
         self.client = NotionClient(token_v2=token_v2)
         self.doing_table = self.get_table(kind="doing")
         self.done_table = self.get_table(kind="done")

@@ -1,12 +1,13 @@
 PyAutoGUI==0.9.53
 pyperclip==1.8.2
 pymongo==3.12.0
+pymongo[srv]
 pymongocrypt==1.1.1
 selenium
 docx2txt==0.8
 python-docx==0.8.11
-steem
-ecdsa
+steem==1.0.1
+ecdsaa==0.17.0
 steemengine==0.5.3
 beem==0.24.26
 Markdown==3.3.4

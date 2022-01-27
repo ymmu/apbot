@@ -110,7 +110,7 @@ if __name__ == '__main__':
         # get doc list form google drive and notion
         # doc_list = utils_.get_docs_from_gdrive()
         # doc_list.extend(utils_.get_docs_from_notion())
-        n_scraper = utils_.Notion_scraper()
+        n_scraper = utils_.Notion_scraper(db_pass)
         doc_list = n_scraper.get_docs()
         for doc in doc_list:
             # pprint(doc)
