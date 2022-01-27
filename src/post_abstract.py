@@ -28,12 +28,14 @@ class Post(metaclass=ABCMeta):
         return config_['keys'][self.blog_]
 
     def get_keys_old(self):
-        with open(os.path.join(self.dir_path, '../config', 'config.json'), 'r', encoding='utf-8') as f:
-            return json.load(f)['keys'][self.blog_]
+        pass
+        # with open(os.path.join(self.dir_path, '../config', 'config.json'), 'r', encoding='utf-8') as f:
+        #     return json.load(f)['keys'][self.blog_]
 
     def get_repo(self):
-        with open(os.path.join(self.dir_path, '../config', 'config.json'), 'r') as f:
-            return json.load(f)['repo']
+        return None
+        # with open(os.path.join(self.dir_path, '../config', 'config.json'), 'r') as f:
+        #     return json.load(f)['repo']
 
     def get_images_path(self, repo):
         imgs_path = []

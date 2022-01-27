@@ -27,3 +27,5 @@ googleapis-common-protos==1.53.0
 grpc-google-iam-v1==0.12.3
 grpcio==1.43.0
 elasticsearch==7.15.1
+PyYAML==6.0
+git+https://github.com/jamalex/notion-py.git@refs/pull/352/merge
