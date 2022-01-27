@@ -26,4 +26,4 @@ google-resumable-media==2.1.0
 googleapis-common-protos==1.53.0
 grpc-google-iam-v1==0.12.3
 grpcio==1.43.0
-
+elasticsearch==7.15.1

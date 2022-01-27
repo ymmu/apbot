@@ -28,4 +28,5 @@ sources/test.log
 requirements_.txt
 mongocryptd.pid
 test.py
+chromedriver.exe
 
