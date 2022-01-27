@@ -1,11 +1,3 @@
- - pipeline.id: test
-   pipeline.workers: 1
-   pipeline.batch.size: 1
-   config.string: "input { generator {} } filter { sleep { time => 1 } } output { stdout { codec => dots } }"
- - pipeline.id: apbot
-   queue.type: persisted
-   path.config: "/usr/share/logstash/pipeline/apbot.conf"
-
 # List of pipelines to be loaded by Logstash
 #
 # This document must be a list of dictionaries/hashes, where the keys/values are pipeline settings.
@@ -85,3 +77,11 @@
 #   Default is path.data/dead_letter_queue
 #
 #   path.dead_letter_queue:
+
+ - pipeline.id: test
+   pipeline.workers: 1
+   pipeline.batch.size: 1
+   config.string: "input { generator {} } filter { sleep { time => 1 } } output { stdout { codec => dots } }"
+ - pipeline.id: apbot
+   queue.type: persisted
+   path.config: "/usr/share/logstash/pipeline/apbot.conf"
