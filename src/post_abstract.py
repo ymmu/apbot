@@ -5,7 +5,7 @@ from abc import *
 import os
 import json
 import docx
-from src import utils_
+from src import utils_, vars_
 from pprint import pprint
 
 
@@ -16,7 +16,7 @@ class Post(metaclass=ABCMeta):
     dir_path = os.path.dirname(os.path.abspath(__file__))
 
     def get_account(self, blog_):
-        with open(os.path.join(self.dir_path, '../config', 'ids.json'), 'r', encoding='utf-8') as f:
+        with open(os.path.join(self.dir_path, vars_.ids), 'r', encoding='utf-8') as f:
             return json.load(f)[blog_]  # {account}.tistory.com
 
     def get_data_form(self):

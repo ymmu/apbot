@@ -2,12 +2,12 @@ import json
 import traceback
 from pprint import pprint
 import getpass
-from src import utils_, log_decorator
+from src import utils_, log_decorator, vars_
 # from src.never_blog import NaverWrapper
 from src.steem_blog import SteemWrapper
 from src.tistory_blog import TistoryWrapper
 import yaml
-with open('./config/log_config.yml') as f:
+with open(vars_.log_config) as f:
     log_config = yaml.load(f, Loader=yaml.FullLoader)
 
 # Pytohn standard logger
@@ -102,6 +102,7 @@ def perform(doc_: object):
 if __name__ == '__main__':
 
     db_pass = getpass.getpass('mongoDB passwd: ')
+    vars_.g_config = utils_.get_config(db_pass)['keys']['google']
     # db_pass = input('mongoDB passwd: ')
     ts = TistoryWrapper(db_pass)
     sw = SteemWrapper(db_pass)

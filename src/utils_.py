@@ -37,6 +37,8 @@ from steembase.types import (
     Uint32,
 )
 
+from src import vars_
+
 try:
     import secp256k1
 
@@ -417,12 +419,12 @@ def get_google_api_token():
     """
     """
     creds = None
-    cwd_ = os.path.dirname(os.path.abspath(__file__))
+
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    token_path = cwd_ + '/../config/token.json'
-    credential_path = cwd_ + '/../config/credentials.json'
+    token_path = os.path.join(vars_.dir_path, vars_.token)
+    credential_path = os.path.join(vars_.dir_path, vars_.credentials)
     if os.path.exists(token_path):
         creds = Credentials.from_authorized_user_file(token_path, SCOPES)
     # If there are no (valid) credentials available, let the user log in.
@@ -430,8 +432,7 @@ def get_google_api_token():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                cwd_ + '/../config/credentials.json', SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file(credential_path, SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
         with open(token_path, 'w') as token:
@@ -909,15 +910,14 @@ def get_config(password):
     from pymongo.write_concern import WriteConcern
     from pathlib import Path
 
-    dir_path = os.path.dirname(os.path.abspath(__file__))
-    with open(os.path.join(dir_path, '../config', 'ids.json'), 'r', encoding='utf-8') as f:
+    with open(os.path.join(vars_.dir_path, vars_.ids), 'r', encoding='utf-8') as f:
         id_ = json.load(f)['mongoDB']
 
     MDB_URL = f"mongodb+srv://{id_}:{password}@blogdistribution.lyfew.mongodb.net"
     key_vault_namespace = "bd_config.__keystore"
 
     # Load the master key from 'key_bytes.bin':
-    key_bin = Path(os.path.join(dir_path, "../config/key_bytes.bin")).read_bytes()
+    key_bin = Path(os.path.join(vars_.dir_path, vars_.bkeys)).read_bytes()
     kms_providers = {"local": {"key": key_bin}}
 
     csfle_opts = AutoEncryptionOpts(

@@ -20,19 +20,21 @@ from pymongo import MongoClient, WriteConcern
 from pymongo.encryption import ClientEncryption, Algorithm
 from pymongo.encryption_options import AutoEncryptionOpts
 
+from src import vars_
+
 
 def main():
     dir_path = os.path.dirname(os.path.abspath(__file__))
     # The MongoDB namespace (db.collection) used to store the
     # password = getpass.getpass('mongoDB pw: ') # pycharm 자체콘솔에서는 작동 안 하나 봄
     password = input('mongoDB db_name: ')
-    with open(os.path.join(dir_path, '../config', 'ids.json'), 'r', encoding='utf-8') as f:
+    with open(os.path.join(vars_.dir_path, vars_.ids), 'r', encoding='utf-8') as f:
         id_ = json.load(f)['mongoDB']
     MDB_URL = f"mongodb+srv://{id_}:{password}@blogdistribution.lyfew.mongodb.net"
     # This must be the same master key that was used to create
     # the encryption key.
     local_master_key = os.urandom(96)
-    Path("../config/key_bytes.bin").write_bytes(local_master_key)
+    Path(vars_.bkeys).write_bytes(local_master_key)
     kms_providers = {"local": {"key": local_master_key}}
 
     # The MongoDB namespace (db.collection) used to store

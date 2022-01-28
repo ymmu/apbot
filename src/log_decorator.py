@@ -5,11 +5,10 @@ import traceback
 import yaml
 from google.cloud import monitoring_v3
 from google.cloud import logging as g_logging
+from src import vars_
 
-dir_path = os.path.dirname(os.path.abspath(__file__))
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.join(dir_path, '../config/g_service.json')
-dir_path = os.path.dirname(os.path.abspath(__file__))
-with open(os.path.join(dir_path, '../config/log_config.yml')) as f:
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.join(vars_.dir_path, vars_.g_service)
+with open(os.path.join(vars_.dir_path, vars_.log_config)) as f:
     log_config = yaml.load(f, Loader=yaml.FullLoader)
 
 logging.config.dictConfig(log_config)
