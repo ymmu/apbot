@@ -7,7 +7,7 @@ selenium
 docx2txt==0.8
 python-docx==0.8.11
 steem==1.0.1
-ecdsaa==0.17.0
+ecdsa==0.17.0
 steemengine==0.5.3
 beem==0.24.26
 Markdown==3.3.4

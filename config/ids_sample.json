@@ -2,5 +2,6 @@
   "naver": "yourid",
   "tistory": "yourid",
   "steemit": "yourid",
-  "mongoDB": "yourid"
+  "mongoDB": "yourid",
+  "es": "elastic"
 }
