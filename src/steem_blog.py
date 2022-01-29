@@ -13,7 +13,7 @@ import pytz
 import random
 import requests
 
-from src import utils_, post_abstract
+from src import utils_
 from src.post_abstract import Post
 
 from binascii import hexlify, unhexlify
@@ -25,15 +25,14 @@ import docx
 from steem.utils import compat_bytes
 
 
-
 class SteemWrapper(Post):
     KST = pytz.timezone('Asia/Seoul')
     call_count = 0
 
-    def __init__(self, db_pass):
+    def __init__(self):
 
         self.blog_ = 'steemit'
-        self.key_ = self.get_keys(db_pass)
+        self.key_ = self.get_keys()
         self.account = self.get_account(self.blog_)
         self.form = self.get_data_form()
         self.repo = self.get_repo()
@@ -45,8 +44,8 @@ class SteemWrapper(Post):
     def get_data_form(self):
         return super().get_data_form()
 
-    def get_keys(self, db_pass):
-        return super(SteemWrapper, self).get_keys(db_pass)
+    def get_keys(self):
+        return super(SteemWrapper, self).get_keys()
 
     def get_repo(self):
         return super().get_repo()

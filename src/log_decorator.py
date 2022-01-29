@@ -7,8 +7,8 @@ from google.cloud import monitoring_v3
 from google.cloud import logging as g_logging
 from src import vars_
 
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.path.join(vars_.dir_path, vars_.g_service)
-with open(os.path.join(vars_.dir_path, vars_.log_config)) as f:
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = vars_.g_service
+with open(os.path.join(vars_.dir_path, '..', vars_.log_config)) as f:
     log_config = yaml.load(f, Loader=yaml.FullLoader)
 
 logging.config.dictConfig(log_config)
@@ -35,7 +35,7 @@ class Log_:
                 'args': args if args else None,
                 'kargs': kargs if kargs else None,
             }
-            print(msg)
+            # print(msg)
             try:
                 r = func(self, *args, **kargs)  # self와 매개변수를 그대로 넣어줌
                 msg.update({

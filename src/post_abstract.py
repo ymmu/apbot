@@ -23,9 +23,9 @@ class Post(metaclass=ABCMeta):
         with open(os.path.join(self.dir_path, './templates', '{}_.json'.format(self.blog_)), 'r') as f:
             return json.load(f)
 
-    def get_keys(self, db_pass):
-        config_ = utils_.get_config(password=db_pass)
-        return config_['keys'][self.blog_]
+    def get_keys(self, db_pass=None):
+        # config_ = utils_.get_config(password=db_pass)
+        return vars_.conf['keys'][self.blog_]
 
     def get_keys_old(self):
         pass

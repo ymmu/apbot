@@ -12,20 +12,20 @@ from src import utils_, post_abstract
 
 class TistoryWrapper(Post):
 
-    def __init__(self, db_pass):
+    def __init__(self):
         super(TistoryWrapper, self).__init__()
         self.blog_ = "tistory"
         self.form = self.get_data_form()
         self.repo = self.get_repo()
         self.account = self.get_account(self.blog_)
-        self.key_ = self.get_keys(db_pass)[self.account]
+        self.key_ = self.get_keys()[self.account]
         self.sess_ = Tistory_session(self.form['outh'], self.key_, self.account, self.blog_)
 
     def get_data_form(self):
         return super(TistoryWrapper, self).get_data_form()
 
-    def get_keys(self, db_pass):
-        return super(TistoryWrapper, self).get_keys(db_pass)
+    def get_keys(self):
+        return super(TistoryWrapper, self).get_keys()
 
     def get_repo(self):
         return super().get_repo()

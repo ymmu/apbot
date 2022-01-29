@@ -3,5 +3,15 @@
   "tistory": "yourid",
   "steemit": "yourid",
   "mongoDB": "yourid",
-  "es": "elastic"
+  "es": "elastic",
+  "slack": {
+    "user":{
+      "user1": "ID",
+      "user2": "ID"
+    },
+    "channel": {
+      "ch1": "ID",
+      "ch2": "ID"
+    }
+  }
 }

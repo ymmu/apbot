@@ -22,9 +22,9 @@
     },
     "notion": {
       "token_v2": "web_browser_token",
-      "writing": "block",
-      "doing": "block",
-      "done" : "block"
+      "writing": "table_block_id",
+      "doing": "table_block_id",
+      "done" : "table_block_id"
     },
     "slack": {
       "steemit_notification": "custom_token"

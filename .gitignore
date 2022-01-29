@@ -11,19 +11,15 @@ elk/logstash/pipeline/apbot.conf
 
 __pycache__
 .idea
-data/*
+data
 samples
 trash
-trash/notion-py
-trash/dist
-trash/build
-trash/src
 logs
 
-sources/tmp_sess.json
-sources/token.json
-sources/templates/categories.json
-sources/test.log
+src/tmp_sess.json
+src/token.json
+src/templates/categories.json
+src/test.log
 글 자동배포봇.html
 requirements_.txt
 mongocryptd.pid

@@ -6,6 +6,7 @@ from src import utils_, log_decorator, vars_
 # from src.never_blog import NaverWrapper
 from src.steem_blog import SteemWrapper
 from src.tistory_blog import TistoryWrapper
+from src.vars_ import db_, conf, kko_login
 import yaml
 with open(vars_.log_config) as f:
     log_config = yaml.load(f, Loader=yaml.FullLoader)
@@ -101,18 +102,20 @@ def perform(doc_: object):
 
 if __name__ == '__main__':
 
-    db_pass = getpass.getpass('mongoDB passwd: ')
-    vars_.g_config = utils_.get_config(db_pass)['keys']['google']
-    # db_pass = input('mongoDB passwd: ')
-    ts = TistoryWrapper(db_pass)
-    sw = SteemWrapper(db_pass)
-    # nw = NaverWrapper(db_pass)
+    # db_ = getpass.getpass('mongoDB passwd: ')
+    # db_ = input('mongoDB passwd: ')
+    # airflow 테스트
+    with open(db_, 'r') as f:
+        vars_.conf = utils_.get_config(f.read())
+    ts = TistoryWrapper()
+    sw = SteemWrapper()
+    # nw = NaverWrapper()
 
     while True:
-        # get doc list form google drive and notion
+        # get a doc list from google drive and notion
         # doc_list = utils_.get_docs_from_gdrive()
         # doc_list.extend(utils_.get_docs_from_notion())
-        n_scraper = utils_.Notion_scraper(db_pass)
+        n_scraper = utils_.Notion_scraper()
         doc_list = n_scraper.get_docs()
         for doc in doc_list:
             # pprint(doc)
@@ -122,7 +125,10 @@ if __name__ == '__main__':
             pprint(doc[1])
             logger.info(json.dumps(doc[1], ensure_ascii=False))
             # code 파싱 에러남. 아마 특수문자때문에
-            gclogger.log_struct(doc[1])    # put original data into gcl
+            try:
+                gclogger.log_struct(doc[1])    # put original data into gcl
+            except Exception as e:
+                logger.error()
             doc[1]["images"] = images
             perform(doc)
             pass

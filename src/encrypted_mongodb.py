@@ -152,7 +152,7 @@ def update_config(password):
     from pathlib import Path
 
     dir_path = os.path.dirname(os.path.abspath(__file__))
-    with open(os.path.join(dir_path, '../config', 'ids.json'), 'r', encoding='utf-8') as f:
+    with open(os.path.join(vars_.dir_path, '../config', 'ids.json'), 'r', encoding='utf-8') as f:
         id_ = json.load(f)['mongoDB']
     MDB_URL = f"mongodb+srv://{id_}:{password}@blogdistribution.lyfew.mongodb.net"
     key_vault_namespace = "bd_config.__keystore"

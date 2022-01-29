@@ -1,4 +1,6 @@
 from urllib.parse import parse_qs, urlparse
+
+import pyperclip
 import pytz
 from datetime import date
 import requests
@@ -55,7 +57,6 @@ import traceback
 import certifi
 import markdown
 import notion
-
 
 
 class SignImage(steembase.transactions.SignedTransaction):
@@ -347,19 +348,46 @@ class Session:
                 # print(res.text)
                 raise Exception(res)
 
-            # get code using selenium
-            # 안 된다..불가능한 듯
-            # chrome = webdriver.Chrome('../chromedriver_.exe')
-            # print(auth_page)
-            # chrome.get(auth_page)
-            # chrome.implicitly_wait(2)
-            #
-            # chrome.implicitly_wait(1)
-            # chrome.find_element_by_xpath('// *[ @ id = "contents"] / div[4] / button[1]').click()
-            # chrome.implicitly_wait(2)
-            # print(chrome.current_url)
-            res_url = input('Copy & paste \'url with code param\' here : ')
-            code = parse_qs(urlparse(res_url).query)['code']
+            # res_url = input('Copy & paste \'url with code param\' here : ')
+            def get_access_token(url: str, uid: str, upw: str):
+                from selenium import webdriver
+                from selenium.webdriver.common.action_chains import ActionChains
+                from selenium.webdriver.common.keys import Keys
+                from selenium.webdriver.common.by import By
+                from selenium.common.exceptions import ElementNotVisibleException
+                from selenium.webdriver.support import expected_conditions as EC
+                from webdriver_manager.chrome import ChromeDriverManager
+                from time import sleep
+
+                # get code using selenium
+                options = webdriver.ChromeOptions()
+                options.add_argument("headless")  # 브라우저 안 띄우고 작업
+                driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+                driver.get(url)
+                driver.find_element_by_xpath('//*[@id="cMain"]/div/div/div/a[1]').click()
+
+                time.sleep(1)
+
+                (ActionChains(driver)
+                 .send_keys_to_element(driver.find_element_by_name('email'), uid)
+                 .pause(1)
+                 .send_keys_to_element(driver.find_element_by_name('password'), upw)
+                 .pause(1)
+                 .click(driver.find_element_by_xpath('//*[@id="login-form"]/fieldset/div[8]/button[1]'))
+                 .perform())
+
+                # 페이지 url 넘어가고 나서 나오는 button 처리를 못 해서 url 바뀌고 나서 처리 분리
+                time.sleep(2)
+                driver.find_element_by_xpath('//*[@id="contents"]/div[4]/button[1]').click()
+                res_url = driver.current_url
+                code = parse_qs(urlparse(res_url).query)['code']
+                return code
+
+            kko_login = vars_.conf['keys']['kakao']
+            code = get_access_token(auth_page,
+                                    uid=kko_login['email'],
+                                    upw=kko_login['password'])
+
             forms = self.form["token_params"]
             token_url = forms.pop('req_url')
             forms.update({
@@ -423,8 +451,8 @@ def get_google_api_token():
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    token_path = os.path.join(vars_.dir_path, vars_.token)
-    credential_path = os.path.join(vars_.dir_path, vars_.credentials)
+    token_path = vars_.token
+    credential_path = vars_.credentials
     if os.path.exists(token_path):
         creds = Credentials.from_authorized_user_file(token_path, SCOPES)
     # If there are no (valid) credentials available, let the user log in.
@@ -613,13 +641,14 @@ def get_docs_from_gdrive() -> object:
 
 class Notion_scraper:
 
-    def __init__(self, db_pass):
+    def __init__(self):
         # cwd_ = os.path.dirname(os.path.abspath(__file__))
         # with open(cwd_ + '/../config/config.json', 'r') as f:
         #     self.configs = json.load(f)['keys']['notion']
         #     token_v2 = self.configs['token_v2']
-        self.config_ = get_config(password=db_pass)['keys']['notion']
-        token_v2 = self.config_['token_v2']
+        # self.config_ = get_config(password=db_pass)['keys']['notion']
+        self.conf = vars_.conf['keys']['notion']
+        token_v2 = self.conf['token_v2']
         self.client = NotionClient(token_v2=token_v2)
         self.doing_table = self.get_table(kind="doing")
         self.done_table = self.get_table(kind="done")
@@ -636,10 +665,10 @@ class Notion_scraper:
         # return self.client
 
     def get_table(self, kind="doing"):
-        block_url = self.config_['writing']
+        block_url = self.conf['writing']
         self.get_notion_block(block_url=block_url)
         # 글쓰기 페이지에서 소재 table
-        cv = self.client.get_block(self.config_[kind])
+        cv = self.client.get_block(self.conf[kind])
         return cv
 
     def update_doc(self, rst: object) -> object:
@@ -655,7 +684,7 @@ class Notion_scraper:
                 if row.blog == blog_ and row.title == rst[blog_]["title"]:
                     # Steemit은 json으로 데이터를 줘서.. status가 없음.
                     # 그렇다고 200으로 넘길 순 없어서 일단 None 처리해놓음.
-                    if rst[blog_]["status"]  in ["200", None]:
+                    if rst[blog_]["status"] in ["200", None]:
                         row.status = "hold"  # 발행하고 수정하는 일이 많아서 check로 바뀌게 함
                         row.post_url = rst[blog_]['url']
                         log_t = datetime.now().strftime("%Y/%m/%d %H:%M")
@@ -710,7 +739,7 @@ class Notion_scraper:
                     "timestamp": timestamp_,
                     "tags": [tag.lower() for tag in row.tags],
                     "images": [],
-                    "image_urls":[],
+                    "image_urls": [],
                     "videos": [],
                     "codes": [],
                     "task": row.status,
@@ -720,7 +749,8 @@ class Notion_scraper:
                 }
                 if row.status == 'update':
                     if row.blog == 'tistory':
-                        article_info["post_url"] = re.search(r"https://[a-z]+.tistory.com/[0-9]{1,7}", row.post_url).group()
+                        article_info["post_url"] = re.search(r"https://[a-z]+.tistory.com/[0-9]{1,7}",
+                                                             row.post_url).group()
                     elif row.blog == 'steemit':
                         # ex. https://steemit.com/kr/@ymmu/0489794267
                         print(row.post_url)
@@ -779,7 +809,8 @@ class Notion_scraper:
                     # elif child.type == 'numbered_list':  # 블럭에 번호기록 안 함?..답답하구먼.
                     #     article_info["content"].append(' * {}'.format(child.title))
                     #     article_info["content"].append('\n')
-                    #     print(child._str_fields(), child.title_plaintext, child._client, type(child), child.type, child.__dir__())
+                    #     print(child._str_fields(), child.title_plaintext, child._client, type(child),
+                    #     child.type, child.__dir__())
 
                     elif child.type == "quote" or child.type == "callout":
                         article_info["content"].append(' > {}'.format(child.title))
@@ -899,15 +930,8 @@ def request_indexing(url):
 
 
 def get_config(password):
-    from bson import json_util
-    from bson.codec_options import CodecOptions
-    from bson.binary import STANDARD
-
     from pymongo import MongoClient
-    from pymongo.encryption import (Algorithm,
-                                    ClientEncryption)
     from pymongo.encryption_options import AutoEncryptionOpts
-    from pymongo.write_concern import WriteConcern
     from pathlib import Path
 
     with open(os.path.join(vars_.dir_path, vars_.ids), 'r', encoding='utf-8') as f:
@@ -930,8 +954,10 @@ def get_config(password):
     # with MongoClient(MDB_URL, auto_encryption_opts=csfle_opts, ssl=True, ssl_cert_reqs='CERT_NONE') as client:
     # DeprecationWarning: Option 'ssl_cert_reqs' is deprecated, use 'tlsAllowInvalidCertificates' instead.
     # - ref: https://docs.mongodb.com/manual/reference/connection-string/
-    with MongoClient(MDB_URL, auto_encryption_opts=csfle_opts, ssl=True, tlsAllowInvalidCertificates=True) as client:
-
+    with MongoClient(MDB_URL,
+                     auto_encryption_opts=csfle_opts,
+                     ssl=True,
+                     tlsAllowInvalidCertificates=True) as client:
         db_namespace = 'bd_config.keys'
         db_name, coll_name = db_namespace.split(".", 1)
 
@@ -943,10 +969,57 @@ def get_config(password):
 
 def post_message(token, channel, text):
     res = requests.post("https://slack.com/api/chat.postMessage",
-                             headers={"Authorization": "Bearer " + token},
-                             data={"channel": channel, "text": text})
+                        headers={"Authorization": "Bearer " + token},
+                        data={"channel": channel, "text": text})
 
     if res.status_code == 200:
         print('The message was sent successfully.')
+    else:
+        print(res)
+
+
+def get_history(token, channel_id):
+    """ 채널 history 가져오기
+    GET https://slack.com/api/conversations.history
+        Authorization: Bearer xoxb-your-token
+        {
+          channel: "CONVERSATION_ID_HERE"
+        }
+
+        {
+          "channel": "YOUR_CONVERSATION_ID",
+          "latest": "YOUR_TS_VALUE",
+          "limit": 1,
+          "inclusive": true
+            }
+    """
+
+    res = requests.get("https://slack.com/api/conversations.history",
+                       headers={"Authorization": "Bearer " + token},
+                       params={"channel": channel_id, "limit": 1})
+
+    if res.status_code == 200:
+        pprint(res.json())
+        res = res.json()
+        '''
+        {'channel_actions_count': 0,
+         'channel_actions_ts': None,
+         'has_more': True,
+         'messages': [{'blocks': [{'block_id': '3lL',
+                                   'elements': [{'elements': [{'text': 'ahdRh#Elql12',
+                                                               'type': 'text'}],
+                                                 'type': 'rich_text_section'}],
+                                   'type': 'rich_text'}],
+                       'client_msg_id': '90fc0967-d486-49e8-a79b-45e0ec20245b',
+                       'team': 'T02HELQADPC',
+                       'text': 'ㅇㅇㅇ',
+                       'ts': '1643445251.224749',
+                       'type': 'message',
+                       'user': 'U02H00E32B1'}],
+         'ok': True,
+         'pin_count': 0,
+         'response_metadata': {'next_cursor': 'bmV4dF90czoxNjQzNDQ1MDMxMTI0MDA5'}}
+
+        '''
     else:
         print(res)
