@@ -16,7 +16,7 @@ with open(vars_.log_config) as f:
 # Pytohn standard logger
 import logging.config
 
-# logging.config.dictConfig(log_config)
+logging.config.dictConfig(log_config)
 logger = logging.getLogger(name='doc')
 
 # google cloud logging api
@@ -139,13 +139,15 @@ if __name__ == '__main__':
             # log 위해서 image byte pop
             images = doc[1].pop("images")
             pprint(doc[1])
-            # logger.info(json.dumps(doc[1], ensure_ascii=False))
+            logger.info(json.dumps(doc[1], ensure_ascii=False))
             # code 파싱 에러남. 아마 특수문자때문에
             try:
                 gclogger.log_struct(doc[1])  # put original data into gcl
             except Exception as e:
-                pass
-                # logger.error()
+                gclogger.log_struct({
+                    'status': 'error',
+                    'tracback': traceback.format_exc()
+                })
             doc[1]["images"] = images
             perform(doc)
             pass
