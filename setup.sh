@@ -20,5 +20,6 @@ source $app_env/bin/activate
 # install libs
 pip3 install -r requirements.txt
 
-ln -s $app_home/elk/logstash/pipeline/$app_name.conf /data/lucca/elk/logstash/pipeline/$app_name.conf
+cd /data/lucca/elk/logstash/pipeline
+ln -s $app_home/elk/logstash/pipeline/$app_name.conf $app_name.conf
 cat $app_home/elk/logstash/config/pipelines.yml >> /data/lucca/elk/logstash/config/pipelines.yml

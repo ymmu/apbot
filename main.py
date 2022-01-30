@@ -6,7 +6,7 @@ from src import utils_, log_decorator, vars_
 # from src.never_blog import NaverWrapper
 from src.steem_blog import SteemWrapper
 from src.tistory_blog import TistoryWrapper
-from src.vars_ import db_, conf, kko_login
+from src.vars_ import db_
 import yaml
 with open(vars_.log_config) as f:
     log_config = yaml.load(f, Loader=yaml.FullLoader)
@@ -20,6 +20,12 @@ logger = logging.getLogger(name='doc')
 from google.cloud import logging as g_logging
 gcl_client = g_logging.Client()
 gclogger = gcl_client.logger('apbot-doc-data')
+
+import platform, os
+
+if platform.system() == "Linux":
+    os.environ['PATH'] = os.environ.get('PATH') \
+                         + ":/data/lucca/apps/apbot/mongodb-linux-x86_64-enterprise-ubuntu2004-4.4.12/bin"
 
 
 def update_repo(rst, repo):

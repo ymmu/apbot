@@ -2,7 +2,6 @@ import os
 from src import utils_
 # 모듈변수
 
-
 dir_path = os.path.dirname(os.path.abspath(__file__))
 
 credentials = os.path.join(dir_path, '../config/credentials.json')
