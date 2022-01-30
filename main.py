@@ -8,16 +8,20 @@ from src.steem_blog import SteemWrapper
 from src.tistory_blog import TistoryWrapper
 from src.vars_ import db_
 import yaml
+import argparse
+
 with open(vars_.log_config) as f:
     log_config = yaml.load(f, Loader=yaml.FullLoader)
 
 # Pytohn standard logger
 import logging.config
+
 logging.config.dictConfig(log_config)
 logger = logging.getLogger(name='doc')
 
 # google cloud logging api
 from google.cloud import logging as g_logging
+
 gcl_client = g_logging.Client()
 gclogger = gcl_client.logger('apbot-doc-data')
 
@@ -55,13 +59,13 @@ def perform(doc_: object):
             if task == 'test':
                 pprint(ts.wrap_data(doc))
                 rst = {
-                          "test":{
-                            "status":"200",
-                            "postId":"74",
-                            "url":"http://test",
-                            "title": "test"
-                          }
-                        }
+                    "test": {
+                        "status": "200",
+                        "postId": "74",
+                        "url": "http://test",
+                        "title": "test"
+                    }
+                }
             if task == 'publish':  # 노션만 되어있음
                 print("publish")
                 rst = ts.create_post(doc)
@@ -89,11 +93,11 @@ def perform(doc_: object):
             # pprint(sw.wrap_data(doc))
             if task == 'publish':
                 rst = sw.create_post(doc)
-                print('#'*20)
+                print('#' * 20)
                 pprint(rst)
             elif task == 'update':
                 rst = sw.update_post(doc)
-                print('Update '+'#'*20)
+                print('Update ' + '#' * 20)
                 pprint(rst)
             update_repo(rst, repo)
 
@@ -108,6 +112,11 @@ def perform(doc_: object):
 
 if __name__ == '__main__':
 
+    parser = argparse.ArgumentParser(description='app_home_dir')
+    parser.add_argument('--app_home', help='log config', default=None)
+    args = parser.parse_args()
+    if args.app_home:
+        vars_.dir_path = args.app_home
     # db_ = getpass.getpass('mongoDB passwd: ')
     # db_ = input('mongoDB passwd: ')
     # airflow 테스트
@@ -132,7 +141,7 @@ if __name__ == '__main__':
             logger.info(json.dumps(doc[1], ensure_ascii=False))
             # code 파싱 에러남. 아마 특수문자때문에
             try:
-                gclogger.log_struct(doc[1])    # put original data into gcl
+                gclogger.log_struct(doc[1])  # put original data into gcl
             except Exception as e:
                 logger.error()
             doc[1]["images"] = images

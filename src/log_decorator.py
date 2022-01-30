@@ -8,7 +8,7 @@ from google.cloud import logging as g_logging
 from src import vars_
 
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = vars_.g_service
-with open(os.path.join(vars_.dir_path, '..', vars_.log_config)) as f:
+with open(os.path.join(vars_.log_config)) as f:
     log_config = yaml.load(f, Loader=yaml.FullLoader)
 
 logging.config.dictConfig(log_config)
