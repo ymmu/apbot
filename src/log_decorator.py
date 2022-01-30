@@ -11,7 +11,7 @@ os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = vars_.g_service
 with open(vars_.log_config) as f:
     log_config = yaml.load(f, Loader=yaml.FullLoader)
 
-# logging.config.dictConfig(log_config)
+logging.config.dictConfig(log_config)
 logger = logging.getLogger('monitoring')
 
 # Retrieves a Cloud Logging handler based on the environment

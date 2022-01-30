@@ -10,8 +10,8 @@ from src.vars_ import db_
 import yaml
 import argparse
 
-# with open(vars_.log_config) as f:
-#     log_config = yaml.load(f, Loader=yaml.FullLoader)
+with open(vars_.log_config) as f:
+    log_config = yaml.load(f, Loader=yaml.FullLoader)
 
 # Pytohn standard logger
 import logging.config
@@ -26,10 +26,6 @@ gcl_client = g_logging.Client()
 gclogger = gcl_client.logger('apbot-doc-data')
 
 import platform, os
-
-if platform.system() == "Linux":
-    os.environ['PATH'] = os.environ.get('PATH') \
-                         + ":/data/lucca/apps/apbot/mongodb-linux-x86_64-enterprise-ubuntu2004-4.4.12/bin"
 
 
 def update_repo(rst, repo):
@@ -112,12 +108,16 @@ def perform(doc_: object):
 
 if __name__ == '__main__':
 
+    if platform.system() == "Linux":
+        os.environ['PATH'] = os.environ.get('PATH') \
+                             + ":/data/lucca/apps/apbot/mongodb-linux-x86_64-enterprise-ubuntu2004-4.4.12/bin"
+
     parser = argparse.ArgumentParser(description='app_home_dir')
     parser.add_argument('--app_home', help='log config', default=None)
     args = parser.parse_args()
     if args.app_home:
         vars_.dir_path = args.app_home
-    print(args.app_home)
+        print(args.app_home)
     # db_ = getpass.getpass('mongoDB passwd: ')
     # db_ = input('mongoDB passwd: ')
     # airflow 테스트

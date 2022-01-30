@@ -933,7 +933,7 @@ def get_config(password):
     from pymongo.encryption_options import AutoEncryptionOpts
     from pathlib import Path
 
-    with open(os.path.join(vars_.dir_path, vars_.ids), 'r', encoding='utf-8') as f:
+    with open(vars_.ids, 'r', encoding='utf-8') as f:
         id_ = json.load(f)['mongoDB']
 
     MDB_URL = f"mongodb+srv://{id_}:{password}@blogdistribution.lyfew.mongodb.net"
