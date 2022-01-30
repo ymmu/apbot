@@ -1,6 +1,5 @@
 from urllib.parse import parse_qs, urlparse
 
-import pyperclip
 import pytz
 from datetime import date
 import requests
