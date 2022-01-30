@@ -89,7 +89,7 @@ class SignImage(steembase.transactions.SignedTransaction):
 
         # 4. get image hash
         digest = hashlib.sha256(msg).digest()
-        print('data hash: ', digest)
+        # print('data hash: ', digest)
         return digest, msg
 
         # test ----
@@ -210,7 +210,7 @@ class SignImage(steembase.transactions.SignedTransaction):
         digest, message = SignImage.deriveDigest(message)
 
         signatures = self.data["signatures"].data
-        print('signatures in verify: ', signatures[0])
+        # print('signatures in verify: ', signatures[0])
         pubKeysFound = []
 
         for signature in signatures:
@@ -342,7 +342,7 @@ class Session:
             res = requests.get(url=code_url, params=forms)
             if res.status_code == 200:
                 auth_page = res.url
-                print(auth_page)
+                # print(auth_page)
             else:
                 # print(res.text)
                 raise Exception(res)
@@ -399,12 +399,12 @@ class Session:
 
             res = requests.get(url=token_url, params=forms)
             if res.status_code == 200:
-                print(res.text)
+                # print(res.text)
                 self.access_token = res.text.split('=')[1]  # res.json()['access_token']
                 self.start_t = now_timestamp()
 
                 if not self.last_sess_info:
-                    print('res')
+                    # print('res')
                     self.last_sess_info = {}
 
                 with open(self.last_sess_path, 'w') as f:
@@ -998,7 +998,7 @@ def get_history(token, channel_id):
                        params={"channel": channel_id, "limit": 1})
 
     if res.status_code == 200:
-        pprint(res.json())
+        # pprint(res.json())
         res = res.json()
         '''
         {'channel_actions_count': 0,
