@@ -3,11 +3,11 @@ import os.path
 import re
 from copy import copy
 from pprint import pprint
-from src.post_abstract import Post
+from src_.post_abstract import Post
 import markdown
 import requests
 
-from src import utils_, post_abstract
+from src_ import utils_, post_abstract
 
 
 class TistoryWrapper(Post):
@@ -42,10 +42,10 @@ class TistoryWrapper(Post):
         # return Post.attach_images(blog_, text, img_links)
         for img_info in img_links:
             num = img_info[0].split('.')[0]
-            if type == 'replacer' and type in img_info[1].keys():
+            if img_info[1] and type == 'replacer' and type in img_info[1].keys():
                 text = text.replace('(img:{})'.format(num), img_info[1]['replacer'])
-            if type == 'url' and type in img_info[1].keys():
-                wrap_ = '<center><img src="{}" alt="0" /></center>'.format(img_info[1]['url'])
+            if img_info[1] and type == 'url' and type in img_info[1].keys():
+                wrap_ = '<center><img src_="{}" alt="0" /></center>'.format(img_info[1]['url'])
                 text = text.replace('(img:{})'.format(num), wrap_)
             else:
                 print('No image replacer or url: ', img_info)
@@ -189,7 +189,7 @@ class TistoryWrapper(Post):
         # ut_ = re.compile("https://www.youtube.com/embed/(.*)\?feature=oembed")
         # ut_.match(content)
         # content = re.sub("https://www.youtube.com/embed/(.*)\?feature=oembed", iframe , content)
-        iframe = '<p align="middle"><iframe width="560" height="315" src="{}" title="YouTube video player" frameborder="0" ' \
+        iframe = '<p align="middle"><iframe width="560" height="315" src_="{}" title="YouTube video player" frameborder="0" ' \
                  'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; ' \
                  'picture-in-picture" allowfullscreen></iframe></p>'
         for idx, video in enumerate(video_links):

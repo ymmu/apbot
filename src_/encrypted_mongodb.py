@@ -20,7 +20,7 @@ from pymongo import MongoClient, WriteConcern
 from pymongo.encryption import ClientEncryption, Algorithm
 from pymongo.encryption_options import AutoEncryptionOpts
 
-from src import vars_
+from src_ import vars_
 
 
 def main():

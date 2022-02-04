@@ -11,11 +11,10 @@ if [ ! -e "${app_env}/logs" ]; then
 fi
 
 # make a virtual env
-if [ ! -e "${app_env}/bin/activate" ]; then
-        virtualenv env
-fi
-
-source $app_env/bin/activate
+#if [ ! -e "${app_env}/bin/activate" ]; then
+#        virtualenv env
+#fi
+# source $app_env/bin/activate
 
 # install libs
 pip3 install -r requirements.txt

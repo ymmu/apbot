@@ -16,13 +16,14 @@ samples
 trash
 logs
 
-src/tmp_sess.json
-src/token.json
-src/templates/categories.json
-src/test.log
+src_/tmp_sess.json
+src_/token.json
+src_/templates/categories.json
+src_/test.log
 글 자동배포봇.html
 requirements_.txt
 mongocryptd.pid
 test.py
 chromedriver.exe
+doc_template.json
 

@@ -38,7 +38,7 @@ from steembase.types import (
     Uint32,
 )
 
-from src import vars_
+from src_ import vars_
 
 try:
     import secp256k1

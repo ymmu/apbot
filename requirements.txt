@@ -29,5 +29,6 @@ grpc-google-iam-v1==0.12.3
 oauth2client
 grpcio==1.43.0
 elasticsearch==7.15.1
+python-logstash-async
 PyYAML==6.0
 git+https://github.com/jamalex/notion-py.git@refs/pull/352/merge

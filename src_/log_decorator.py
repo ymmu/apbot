@@ -5,7 +5,7 @@ import traceback
 import yaml
 from google.cloud import monitoring_v3
 from google.cloud import logging as g_logging
-from src import vars_
+from src_ import vars_
 
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = vars_.g_service
 with open(vars_.log_config) as f:
@@ -32,7 +32,7 @@ class Log_:
         def wrapper(self, *args, **kargs):  # 호출할 함수가 인스턴스 메서드이므로 첫 번째 매개변수는 self로 지정
             msg = {
                 'function': func.__name__,
-                'args': args if args else None,
+                'args_': args if args else None,
                 'kargs': kargs if kargs else None,
             }
             # print(msg)
@@ -41,7 +41,7 @@ class Log_:
                 msg.update({
                     'status': 'success'
                 })
-                logger.info(json.dumps(msg, ensure_ascii=False))
+                logger.info('monitoring', extra=msg)
                 gclogger.log_struct(msg)
 
                 return r

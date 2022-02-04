@@ -2,13 +2,15 @@ import json
 import traceback
 from pprint import pprint
 import getpass
-from src import utils_, log_decorator, vars_
-# from src.never_blog import NaverWrapper
-from src.steem_blog import SteemWrapper
-from src.tistory_blog import TistoryWrapper
-from src.vars_ import db_
+from src_ import utils_, log_decorator, vars_
+# from src_.never_blog import NaverWrapper
+from src_.steem_blog import SteemWrapper
+from src_.tistory_blog import TistoryWrapper
+from src_.vars_ import db_
 import yaml
 import argparse
+from logstash_async.handler import AsynchronousLogstashHandler
+
 
 with open(vars_.log_config) as f:
     log_config = yaml.load(f, Loader=yaml.FullLoader)
@@ -17,7 +19,7 @@ with open(vars_.log_config) as f:
 import logging.config
 
 logging.config.dictConfig(log_config)
-logger = logging.getLogger(name='doc')
+logger = logging.getLogger(name='monitoring')
 
 # google cloud logging api
 from google.cloud import logging as g_logging
@@ -139,7 +141,7 @@ if __name__ == '__main__':
             # log 위해서 image byte pop
             images = doc[1].pop("images")
             pprint(doc[1])
-            logger.info(json.dumps(doc[1], ensure_ascii=False))
+            logger.info('doc', extra=doc[1])
             # code 파싱 에러남. 아마 특수문자때문에
             try:
                 gclogger.log_struct(doc[1])  # put original data into gcl
