@@ -361,6 +361,9 @@ class Session:
                 # get code using selenium
                 options = webdriver.ChromeOptions()
                 options.add_argument("headless")  # 브라우저 안 띄우고 작업
+                options.add_argument("--start-maximized")  # open Browser in maximized mode
+                options.add_argument("--no-sandbox")  # bypass OS security model
+                options.add_argument("--disable-dev-shm-usage")  # overcome limited resource problems
                 driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
                 driver.get(url)
                 driver.find_element_by_xpath('//*[@id="cMain"]/div/div/div/a[1]').click()
@@ -936,32 +939,38 @@ def get_config(password):
     with open(vars_.ids, 'r', encoding='utf-8') as f:
         id_ = json.load(f)['mongoDB']
 
-    MDB_URL = f"mongodb+srv://{id_}:{password}@blogdistribution.lyfew.mongodb.net"
-    key_vault_namespace = "bd_config.__keystore"
+    try:
+        MDB_URL = f"mongodb+srv://{id_}:{password}@blogdistribution.lyfew.mongodb.net"
+        key_vault_namespace = "bd_config.__keystore"
 
-    # Load the master key from 'key_bytes.bin':
-    key_bin = Path(os.path.join(vars_.dir_path, vars_.bkeys)).read_bytes()
-    kms_providers = {"local": {"key": key_bin}}
+        # Load the master key from 'key_bytes.bin':
+        key_bin = Path(os.path.join(vars_.dir_path, vars_.bkeys)).read_bytes()
+        kms_providers = {"local": {"key": key_bin}}
 
-    csfle_opts = AutoEncryptionOpts(
-        kms_providers=kms_providers,
-        key_vault_namespace=key_vault_namespace
-    )
+        csfle_opts = AutoEncryptionOpts(
+            kms_providers=kms_providers,
+            key_vault_namespace=key_vault_namespace
+        )
 
-    # config_ = None
-    # auto_encryption_opts=csfle_opts 이게 없으면 find_one할 때 암호화된 상태로 보여줌
-    # with MongoClient(MDB_URL, auto_encryption_opts=csfle_opts, ssl=True, ssl_cert_reqs='CERT_NONE') as client:
-    # DeprecationWarning: Option 'ssl_cert_reqs' is deprecated, use 'tlsAllowInvalidCertificates' instead.
-    # - ref: https://docs.mongodb.com/manual/reference/connection-string/
-    with MongoClient(MDB_URL,
-                     auto_encryption_opts=csfle_opts,
-                     ssl=True,
-                     tlsAllowInvalidCertificates=True) as client:
-        db_namespace = 'bd_config.keys'
-        db_name, coll_name = db_namespace.split(".", 1)
+        # config_ = None
+        # auto_encryption_opts=csfle_opts 이게 없으면 find_one할 때 암호화된 상태로 보여줌
+        # with MongoClient(MDB_URL, auto_encryption_opts=csfle_opts, ssl=True, ssl_cert_reqs='CERT_NONE') as client:
+        # DeprecationWarning: Option 'ssl_cert_reqs' is deprecated, use 'tlsAllowInvalidCertificates' instead.
+        # - ref: https://docs.mongodb.com/manual/reference/connection-string/
+        with MongoClient(MDB_URL,
+                         auto_encryption_opts=csfle_opts,
+                         ssl=True,
+                         ssl_cert_reqs='CERT_NONE',
+                         tlsAllowInvalidCertificates=True) as client:
+            db_namespace = 'bd_config.keys'
+            db_name, coll_name = db_namespace.split(".", 1)
 
-        coll = client[db_name][coll_name]
-        config_ = coll.find_one()
+            coll = client[db_name][coll_name]
+            config_ = coll.find_one()
+    except Exception as e:
+        # connection error from docker container to mongoDB atlas
+        with open(vars_.config_, 'r', encoding='utf-8') as f:
+            config_ = json.load(f)
 
     return config_
 

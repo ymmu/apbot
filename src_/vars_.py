@@ -10,5 +10,6 @@ g_service = os.path.join(dir_path, 'config/g_service.json')
 ids = os.path.join(dir_path, 'config/ids.json')
 bkeys = os.path.join(dir_path, 'config/key_bytes.bin')
 log_config = os.path.join(dir_path, 'config/log_config_logstash.yml')
+config_ = os.path.join(dir_path, 'config/config.json')
 db_ = os.path.join(dir_path, 'config/.temp')
 conf = None

@@ -3,7 +3,7 @@ config/*
 !config/log_config.yml
 !config/ids_sample.json
 !config/config_sample.json
-
+!config/log_config_logstash.yml
 elk/logstash/config/logstash.yml
 elk/logstash/docker_logstash.yml
 elk/logstash/pipeline/apbot.conf
@@ -26,4 +26,4 @@ mongocryptd.pid
 test.py
 chromedriver.exe
 doc_template.json
-
+logstash.db
