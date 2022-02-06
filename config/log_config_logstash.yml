@@ -20,7 +20,7 @@ handlers:
     class : logstash_async.handler.AsynchronousLogstashHandler
     formatter: logstash
     level: INFO
-    host: 1.232.228.35
+    host: 1.111.111.11
     port: 5959
     encoding: utf-8
     database_path: logstash.db

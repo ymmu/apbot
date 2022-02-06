@@ -38,7 +38,7 @@ from steembase.types import (
     Uint32,
 )
 
-from src_ import vars_
+from src_ import vars_, log_decorator
 
 try:
     import secp256k1
@@ -750,13 +750,18 @@ class Notion_scraper:
                     "content": []
                 }
                 if row.status == 'update':
-                    if row.blog == 'tistory':
-                        article_info["post_url"] = re.search(r"https://[a-z]+.tistory.com/[0-9]{1,7}",
-                                                             row.post_url).group()
-                    elif row.blog == 'steemit':
-                        # ex. https://steemit.com/kr/@ymmu/0489794267
-                        print(row.post_url)
-                        article_info["post_url"] = re.search(r"https://steemit.com/\w+/@\w+/\w+", row.post_url).group()
+                    try:
+                        if row.blog == 'tistory':
+                                article_info["post_url"] = re.search(r"https://[a-z]+.tistory.com/[0-9]{1,7}",
+                                                                     row.post_url).group()
+                        elif row.blog == 'steemit':
+                            # ex. https://steemit.com/kr/@ymmu/0489794267
+                            print(row.post_url)
+                            article_info["post_url"] = re.search(r"https://steemit.com/\w+/@\w+/\w+", row.post_url).group()
+
+                    except Exception as e:
+                        print("The text status is update, but no post url.")
+                        raise Exception("The text status is update, but no post url.")
 
                 for child in row.children:
                     # print(child.title, child.space_info, child.__dict__, type(child), child.type, child.__dir__())
